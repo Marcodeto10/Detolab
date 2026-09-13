@@ -1,197 +1,148 @@
-import React, { useState, useEffect } from 'react';
-import { Key, ExternalLink, ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
-import { motion } from 'motion/react';
+import React, { useState } from 'react';
+import { ExternalLink, Eye, EyeOff } from 'lucide-react';
 import { Logo } from './Icons';
-import { GoogleGenAI } from "@google/genai";
-import { TEXT_MODEL } from '../lib/models';
+import { Button } from './ui/controls';
+import { getApiKey, setApiKey, setUserName } from '../lib/settings';
+import { friendlyError, validateApiKey } from '../lib/generate';
 
-interface ApiKeyGuardProps {
-  children: React.ReactNode;
-}
+const LOGIN_BG = 'https://i.pinimg.com/1200x/34/69/9e/34699eca0b59961a9490f5279181afe4.jpg';
 
-export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
-  const [hasKey, setHasKey] = useState<boolean | null>(null);
+export const ApiKeyGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [hasKey, setHasKey] = useState(() => !!getApiKey());
+  const [name, setName] = useState('');
+  const [key, setKey] = useState('');
+  const [showKey, setShowKey] = useState(false);
+  const [validating, setValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [manualKey, setManualKey] = useState('');
-  const [userName, setUserName] = useState('');
-  const [isValidating, setIsValidating] = useState(false);
 
-  const checkKey = async () => {
-    // BYOK unicamente: no leemos ninguna key de build/env.
-    // Cualquier key inyectada en el bundle seria publica.
-    const savedKey = localStorage.getItem('ai-explorer-manual-key');
+  if (hasKey) return <>{children}</>;
 
-    if (savedKey) {
-      setHasKey(true);
-    } else {
-      setHasKey(false);
-    }
-  };
-
-  useEffect(() => {
-    checkKey();
-  }, []);
-
-  const handleForceReload = () => {
-    window.location.reload();
-  };
-
-  const handleSaveManualKey = async () => {
-    const key = manualKey.trim();
-    const name = userName.trim();
-    
-    if (key.length < 10) {
-      setError("Please enter a valid API Key.");
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const k = key.trim();
+    if (k.length < 10) {
+      setError('Esa key parece incompleta.');
       return;
     }
-
-    if (!name) {
-      setError("Please enter your name.");
-      return;
-    }
-
-    setIsValidating(true);
+    setValidating(true);
     setError(null);
-
     try {
-      // Validate the key by making a small request with the most stable model
-      const ai = new GoogleGenAI({ apiKey: key });
-      await ai.models.generateContent({
-        model: TEXT_MODEL,
-        contents: [{ parts: [{ text: "hi" }] }],
-        config: { maxOutputTokens: 1 }
-      });
-      
-      localStorage.setItem('ai-explorer-manual-key', key);
-      localStorage.setItem('ai-explorer-user-name', name);
+      // BYOK: validamos con un pedido mínimo y la key queda solo en este navegador.
+      await validateApiKey(k);
+      setApiKey(k);
+      if (name.trim()) setUserName(name.trim());
       setHasKey(true);
-    } catch (err: any) {
-      console.error("Validation error details:", err);
-      
-      // Try to extract the specific error message from Google's JSON structure
-      let errorMessage = "Connection error or invalid key";
-      
-      try {
-        if (err.message && err.message.includes('{')) {
-          const jsonStart = err.message.indexOf('{');
-          const jsonStr = err.message.substring(jsonStart);
-          const parsed = JSON.parse(jsonStr);
-          errorMessage = parsed.error?.message || errorMessage;
-        } else {
-          errorMessage = err.message || errorMessage;
-        }
-      } catch (e) {
-        errorMessage = err.message || errorMessage;
-      }
-
-      setError(`Validation error: ${errorMessage}. Ensure the API Key is correct and 'Generative AI API' is enabled.`);
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : '';
+      setError(/API key not valid|API_KEY_INVALID/i.test(raw) ? 'Esa key no es válida. Revisá que la copiaste completa.' : friendlyError(err));
     } finally {
-      setIsValidating(false);
+      setValidating(false);
     }
   };
 
-  if (hasKey === null) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="flex flex-col items-center gap-8">
-          <div className="animate-pulse text-white/40 font-sans text-xs tracking-[0.4em] font-bold">Initializing DETOLAB...</div>
-        </div>
-      </div>
-    );
-  }
+  return (
+    <div
+      className="relative min-h-dvh flex items-center justify-center p-5 sm:p-8 text-white bg-canvas bg-cover bg-center"
+      style={{ backgroundImage: `url("${LOGIN_BG}")` }}
+    >
+      <div className="absolute inset-0 bg-black/30" />
 
-  if (!hasKey) {
-    return (
-      <div 
-        className="min-h-screen text-white flex flex-col items-center justify-center p-8 font-sans relative"
-        style={{
-          backgroundImage: 'url("https://i.pinimg.com/1200x/34/69/9e/34699eca0b59961a9490f5279181afe4.jpg")',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      >
-        <div className="absolute inset-0 bg-black/30 z-0"></div>
-        <div className="max-w-md w-full space-y-12 text-center relative z-10">
-          <div className="space-y-6">
-            <div className="flex items-center justify-center">
-              <Logo className="w-44 h-auto" />
+      <div className="relative w-full max-w-md space-y-8">
+        <Logo className="w-44 h-auto mx-auto" />
+
+        <form onSubmit={submit} className="glass-card p-6 sm:p-8 space-y-5 shadow-2xl">
+          <div>
+            <h1 className="font-display text-4xl leading-none">Entrá a tu estudio</h1>
+            <p className="mt-3 text-[14px] leading-relaxed text-white/75">
+              Detolab funciona con tu propia API key de Google Gemini. Se guarda solo en este navegador.
+            </p>
+          </div>
+
+          <div>
+            <div className="flex items-baseline justify-between mb-2">
+              <label htmlFor="login-name" className="text-[13px] font-medium">
+                Tu nombre
+              </label>
+              <span className="text-[12px] text-white/50">Opcional</span>
+            </div>
+            <input
+              id="login-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ej: Sofía"
+              autoComplete="given-name"
+              disabled={validating}
+              className="input bg-black/20 border-white/15"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="login-key" className="block text-[13px] font-medium mb-2">
+              API key de Gemini
+            </label>
+            <div className="relative">
+              <input
+                id="login-key"
+                type={showKey ? 'text' : 'password'}
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
+                placeholder="Pegá tu key acá"
+                autoComplete="off"
+                spellCheck={false}
+                disabled={validating}
+                className="input bg-black/20 border-white/15 pr-11"
+              />
+              <button
+                type="button"
+                onClick={() => setShowKey((s) => !s)}
+                aria-label={showKey ? 'Ocultar key' : 'Mostrar key'}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-white/60 hover:text-white"
+              >
+                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 
-          <div className="glass-card space-y-6 p-8 shadow-2xl shadow-blue-500/5">
-            <div className="space-y-4">
-              <p className="text-white/60 text-xs leading-relaxed font-medium">
-                Enter your Gemini API Key to begin. Your key is stored locally and never leaves your browser.
-              </p>
-              
-              <div className="space-y-6 text-left">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-semibold tracking-widest text-white/20 block">Your Name</label>
-                  <input 
-                    type="text"
-                    value={userName}
-                    onChange={(e) => setUserName(e.target.value)}
-                    placeholder="e.g. Jason"
-                    className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 text-xs outline-none focus:ring-1 focus:ring-white/20 transition-all text-white font-sans"
-                    disabled={isValidating}
-                  />
-                </div>
+          {error && (
+            <p role="alert" className="rounded-xl bg-red-500/15 border border-red-500/25 px-3.5 py-2.5 text-[13px] text-red-100 leading-snug">
+              {error}
+            </p>
+          )}
 
-                <div className="space-y-3">
-                  <label className="text-[10px] font-semibold tracking-widest text-white/20 block">Your Gemini API Key</label>
-                  <div className="relative">
-                    <input 
-                      type="password"
-                      value={manualKey}
-                      onChange={(e) => setManualKey(e.target.value)}
-                      placeholder="Paste your key here..."
-                      className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 text-xs outline-none focus:ring-1 focus:ring-white/20 transition-all text-white font-sans"
-                      disabled={isValidating}
-                    />
-                    {isValidating && (
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                        <Loader2 className="w-4 h-4 animate-spin text-white/40" />
-                      </div>
-                    )}
-                  </div>
-                </div>
+          <Button type="submit" variant="primary" size="lg" className="w-full" loading={validating} disabled={!key.trim()}>
+            {validating ? 'Validando…' : 'Entrar'}
+          </Button>
 
-                <button
-                  onClick={handleSaveManualKey}
-                  disabled={isValidating || !manualKey.trim() || !userName.trim()}
-                  className="w-full py-4 btn-magic text-[10px]"
+          <details className="group rounded-xl bg-black/20 border border-white/10 px-4 py-3">
+            <summary className="list-none flex items-center justify-between text-[13px] font-medium">
+              ¿Cómo consigo una key?
+              <span className="text-lg leading-none text-white/50 transition-transform group-open:rotate-45">+</span>
+            </summary>
+            <ol className="mt-3 pl-4 space-y-2 list-decimal text-[13px] leading-relaxed text-white/75">
+              <li>
+                Entrá a{' '}
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-white underline underline-offset-2"
                 >
-                  {isValidating ? "Validating..." : "Verify and Enter"}
-                </button>
-
-                <p className="text-[10px] text-white/20 leading-relaxed font-medium text-center">
-                  Get your free key at <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-white underline">Google AI Studio</a>.
-                </p>
-              </div>
-            </div>
-
-            {error && (
-              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
-                <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
-                <p className="text-red-500 text-[11px] font-semibold tracking-wider text-left leading-tight">{error}</p>
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-col items-center gap-4">
-            <a 
-              href="https://ai.google.dev/gemini-api/docs/billing" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-3 text-[11px] text-white/20 hover:text-white transition-colors font-medium tracking-widest"
-            >
-              Billing Documentation <ExternalLink className="w-4 h-4" />
-            </a>
-          </div>
-        </div>
+                  Google AI Studio
+                  <ExternalLink className="w-3 h-3" />
+                </a>{' '}
+                con tu cuenta de Google.
+              </li>
+              <li>
+                Tocá <strong className="font-medium text-white">Create API key</strong> y copiala.
+              </li>
+              <li>Pegala acá arriba y tocá Entrar.</li>
+            </ol>
+            <p className="mt-3 text-[12px] leading-relaxed text-white/55">
+              Para generar imágenes, Google suele pedir que actives la facturación en tu cuenta.
+            </p>
+          </details>
+        </form>
       </div>
-    );
-  }
-
-  return <>{children}</>;
+    </div>
+  );
 };

@@ -262,19 +262,49 @@ export const formatBytes = (n: number): string => {
   return `${(n / 1024 ** 3).toFixed(2)} GB`;
 };
 
-// --- Export / import -------------------------------------------------------
+// --- Deshacer borrado ------------------------------------------------------
 
-/** Baja toda la galería como archivos sueltos (uno por imagen). */
-export const exportAll = async (): Promise<number> => {
+export const getRecord = (id: string) =>
+  tx<GalleryRecord | undefined>(STORE_IMAGES, 'readonly', (s) => s.get(id));
+
+/** Vuelve a guardar un registro borrado (para "Deshacer"). */
+export const putRecord = async (record: GalleryRecord): Promise<GalleryImage> => {
+  await tx(STORE_IMAGES, 'readwrite', (s) => s.put(record));
+  return {
+    id: record.id,
+    url: toUrl(record.id, record.blob),
+    prompt: record.prompt,
+    folderId: record.folderId,
+    createdAt: record.createdAt,
+  };
+};
+
+// --- Export ----------------------------------------------------------------
+
+/** Baja la galería (o las imágenes indicadas) en un solo .zip. */
+export const exportZip = async (ids?: string[]): Promise<number> => {
   const rows = await tx<GalleryRecord[]>(STORE_IMAGES, 'readonly', (s) => s.getAll());
-  for (const r of rows) {
-    const url = URL.createObjectURL(r.blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `detolab-${r.id}.png`;
-    a.click();
-    URL.revokeObjectURL(url);
-    await new Promise((res) => setTimeout(res, 150));
+  const wanted = ids ? new Set(ids) : null;
+  const selected = rows.filter((r) => !wanted || wanted.has(r.id));
+  if (!selected.length) return 0;
+
+  const { zipSync } = await import('fflate');
+  const files: Record<string, Uint8Array> = {};
+  for (const r of selected) {
+    const ext = (r.blob.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+    const day = new Date(r.createdAt).toISOString().slice(0, 10);
+    files[`detolab-${day}-${r.id}.${ext}`] = new Uint8Array(await r.blob.arrayBuffer());
   }
-  return rows.length;
+
+  // Nivel 0: las imágenes ya vienen comprimidas, recomprimir solo gasta tiempo.
+  const zipped = zipSync(files, { level: 0 });
+  const url = URL.createObjectURL(new Blob([zipped], { type: 'application/zip' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `detolab-galeria-${new Date().toISOString().slice(0, 10)}.zip`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  return selected.length;
 };
