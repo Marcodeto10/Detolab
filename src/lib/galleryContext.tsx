@@ -25,7 +25,7 @@ export const useGallery = () => {
   return ctx;
 };
 
-const FOLDER_NAMES: Record<string, string> = { all: 'Todas', mockups: 'Mockups', products: 'Productos' };
+const FOLDER_NAMES: Record<string, string> = { all: 'All', mockups: 'Mockups', products: 'Products' };
 
 export const folderName = (f: db.GalleryFolder) => FOLDER_NAMES[f.id] ?? f.name;
 

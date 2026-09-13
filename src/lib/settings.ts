@@ -1,6 +1,6 @@
 // Preferencias del usuario, guardadas en su navegador.
 
-import { MODELS, ratiosFor, sizesFor, type ModelType } from './models';
+import { MODEL_ORDER, ratiosFor, sizesFor, type ModelType } from './models';
 
 // Mismas claves que la versión anterior, así nadie tiene que volver a loguearse.
 export const KEY_STORAGE = 'ai-explorer-manual-key';
@@ -36,8 +36,8 @@ export interface StudioSettings {
   /** Cuántas variantes generar por pedido */
   count: number;
   useSearch: boolean;
-  /** Producto: mantener el producto y el logo exactamente iguales */
-  strictProduct: boolean;
+  /** Product: suma el "base prompt" que bloquea producto y logo (como el original) */
+  useBasePrompt: boolean;
 }
 
 export const DEFAULT_SETTINGS: StudioSettings = {
@@ -46,24 +46,19 @@ export const DEFAULT_SETTINGS: StudioSettings = {
   imageSize: '1K',
   count: 1,
   useSearch: false,
-  strictProduct: true,
+  useBasePrompt: true,
 };
-
-export const QUALITY: { id: ModelType; label: string; hint: string }[] = [
-  { id: 'flash-lite', label: 'Rápido', hint: 'Para probar ideas. El más barato.' },
-  { id: 'flash-v2', label: 'Equilibrado', hint: 'Buena calidad y rápido.' },
-  { id: 'pro', label: 'Máxima', hint: 'Más detalle y mejor texto. Más lento y caro.' },
-];
 
 /** Deja las opciones dentro de lo que soporta el modelo elegido. */
 export const normalizeSettings = (s: StudioSettings): StudioSettings => {
-  const modelType = QUALITY.some((q) => q.id === s.modelType) ? s.modelType : DEFAULT_SETTINGS.modelType;
+  const modelType = MODEL_ORDER.includes(s.modelType) ? s.modelType : DEFAULT_SETTINGS.modelType;
   return {
     ...s,
     modelType,
     aspectRatio: ratiosFor(modelType).includes(s.aspectRatio) ? s.aspectRatio : 'ORIGINAL',
     imageSize: sizesFor(modelType).includes(s.imageSize) ? s.imageSize : sizesFor(modelType)[0],
     count: Math.min(4, Math.max(1, Math.round(s.count) || 1)),
+    useBasePrompt: s.useBasePrompt !== false,
   };
 };
 
@@ -78,6 +73,4 @@ export const loadSettings = (): StudioSettings => {
 
 export const saveSettings = (s: StudioSettings) => write(SETTINGS_STORAGE, JSON.stringify(s));
 
-export const ratioLabel = (r: string) => (r === 'ORIGINAL' ? 'Igual a la foto' : r);
-
-export const modelLabel = (t: ModelType) => QUALITY.find((q) => q.id === t)?.label ?? MODELS[t]?.label ?? t;
+export const ratioLabel = (r: string) => (r === 'ORIGINAL' ? 'Original photo' : r);

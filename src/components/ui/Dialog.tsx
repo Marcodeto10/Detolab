@@ -38,14 +38,14 @@ export const Modal: React.FC<ModalProps> = ({ open, onClose, title, children, cl
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 24 }}
             className={cn(
-              'w-full sm:max-w-md max-h-[90dvh] overflow-y-auto custom-scrollbar bg-panel border border-line rounded-t-2xl sm:rounded-2xl shadow-2xl',
+              'w-full sm:max-w-md max-h-[90dvh] overflow-y-auto custom-scrollbar bg-raised border border-white/10 rounded-t-[22px] sm:rounded-[22px] shadow-2xl',
               className
             )}
           >
             {title && (
               <div className="flex items-center justify-between gap-4 px-6 pt-5 pb-2">
-                <h2 className="font-display text-3xl leading-none text-ink">{title}</h2>
-                <button onClick={onClose} aria-label="Cerrar" className="p-1.5 -mr-1.5 rounded-lg text-faint hover:text-ink hover:bg-white/5">
+                <h2 className="text-[22px] font-bold tracking-tight text-ink">{title}</h2>
+                <button onClick={onClose} aria-label="Close" className="p-1.5 -mr-1.5 rounded-lg text-faint hover:text-ink hover:bg-white/5">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -147,14 +147,14 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         )}
         <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
           <Button variant="secondary" onClick={() => close(false)}>
-            {state?.kind === 'confirm' ? state.opts.cancelLabel ?? 'Cancelar' : 'Cancelar'}
+            {state?.kind === 'confirm' ? state.opts.cancelLabel ?? 'Cancel' : 'Cancel'}
           </Button>
           <Button
             variant={state?.kind === 'confirm' && state.opts.danger ? 'danger' : 'primary'}
             onClick={() => close(true)}
             disabled={state?.kind === 'prompt' && !value.trim()}
           >
-            {state?.opts.confirmLabel ?? 'Aceptar'}
+            {state?.opts.confirmLabel ?? 'OK'}
           </Button>
         </div>
       </Modal>

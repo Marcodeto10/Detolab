@@ -3,7 +3,7 @@ import { ExternalLink, Eye, EyeOff } from 'lucide-react';
 import { Logo } from './Icons';
 import { Button } from './ui/controls';
 import { getApiKey, setApiKey, setUserName } from '../lib/settings';
-import { friendlyError, validateApiKey } from '../lib/generate';
+import { friendlyError, isInvalidKeyError, validateApiKey } from '../lib/generate';
 
 const LOGIN_BG = 'https://i.pinimg.com/1200x/34/69/9e/34699eca0b59961a9490f5279181afe4.jpg';
 
@@ -21,7 +21,7 @@ export const ApiKeyGuard: React.FC<{ children: React.ReactNode }> = ({ children 
     e.preventDefault();
     const k = key.trim();
     if (k.length < 10) {
-      setError('Esa key parece incompleta.');
+      setError('That key looks incomplete.');
       return;
     }
     setValidating(true);
@@ -33,8 +33,7 @@ export const ApiKeyGuard: React.FC<{ children: React.ReactNode }> = ({ children 
       if (name.trim()) setUserName(name.trim());
       setHasKey(true);
     } catch (err) {
-      const raw = err instanceof Error ? err.message : '';
-      setError(/API key not valid|API_KEY_INVALID/i.test(raw) ? 'Esa key no es válida. Revisá que la copiaste completa.' : friendlyError(err));
+      setError(isInvalidKeyError(err) ? "That key isn't valid. Make sure you copied all of it." : friendlyError(err));
     } finally {
       setValidating(false);
     }
@@ -52,33 +51,33 @@ export const ApiKeyGuard: React.FC<{ children: React.ReactNode }> = ({ children 
 
         <form onSubmit={submit} className="glass-card p-6 sm:p-8 space-y-5 shadow-2xl">
           <div>
-            <h1 className="font-display text-4xl leading-none">Entrá a tu estudio</h1>
+            <h1 className="text-[34px] font-bold tracking-tight leading-tight">Enter your studio</h1>
             <p className="mt-3 text-[14px] leading-relaxed text-white/75">
-              Detolab funciona con tu propia API key de Google Gemini. Se guarda solo en este navegador.
+              Detolab runs on your own Google Gemini API key. It's stored only in this browser.
             </p>
           </div>
 
           <div>
             <div className="flex items-baseline justify-between mb-2">
               <label htmlFor="login-name" className="text-[13px] font-medium">
-                Tu nombre
+                Your name
               </label>
-              <span className="text-[12px] text-white/50">Opcional</span>
+              <span className="text-[12px] text-white/50">Optional</span>
             </div>
             <input
               id="login-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ej: Sofía"
+              placeholder="e.g. Sophie"
               autoComplete="given-name"
               disabled={validating}
-              className="input bg-black/20 border-white/15"
+              className="input bg-black/30"
             />
           </div>
 
           <div>
             <label htmlFor="login-key" className="block text-[13px] font-medium mb-2">
-              API key de Gemini
+              Gemini API key
             </label>
             <div className="relative">
               <input
@@ -86,16 +85,16 @@ export const ApiKeyGuard: React.FC<{ children: React.ReactNode }> = ({ children 
                 type={showKey ? 'text' : 'password'}
                 value={key}
                 onChange={(e) => setKey(e.target.value)}
-                placeholder="Pegá tu key acá"
+                placeholder="Paste your key here"
                 autoComplete="off"
                 spellCheck={false}
                 disabled={validating}
-                className="input bg-black/20 border-white/15 pr-11"
+                className="input bg-black/30 pr-11"
               />
               <button
                 type="button"
                 onClick={() => setShowKey((s) => !s)}
-                aria-label={showKey ? 'Ocultar key' : 'Mostrar key'}
+                aria-label={showKey ? 'Hide key' : 'Show key'}
                 className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-white/60 hover:text-white"
               >
                 {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -110,17 +109,17 @@ export const ApiKeyGuard: React.FC<{ children: React.ReactNode }> = ({ children 
           )}
 
           <Button type="submit" variant="primary" size="lg" className="w-full" loading={validating} disabled={!key.trim()}>
-            {validating ? 'Validando…' : 'Entrar'}
+            {validating ? 'Validating…' : 'Enter'}
           </Button>
 
           <details className="group rounded-xl bg-black/20 border border-white/10 px-4 py-3">
             <summary className="list-none flex items-center justify-between text-[13px] font-medium">
-              ¿Cómo consigo una key?
+              How do I get a key?
               <span className="text-lg leading-none text-white/50 transition-transform group-open:rotate-45">+</span>
             </summary>
             <ol className="mt-3 pl-4 space-y-2 list-decimal text-[13px] leading-relaxed text-white/75">
               <li>
-                Entrá a{' '}
+                Go to{' '}
                 <a
                   href="https://aistudio.google.com/app/apikey"
                   target="_blank"
@@ -130,15 +129,15 @@ export const ApiKeyGuard: React.FC<{ children: React.ReactNode }> = ({ children 
                   Google AI Studio
                   <ExternalLink className="w-3 h-3" />
                 </a>{' '}
-                con tu cuenta de Google.
+                and sign in with your Google account.
               </li>
               <li>
-                Tocá <strong className="font-medium text-white">Create API key</strong> y copiala.
+                Click <strong className="font-medium text-white">Create API key</strong> and copy it.
               </li>
-              <li>Pegala acá arriba y tocá Entrar.</li>
+              <li>Paste it above and hit Enter.</li>
             </ol>
             <p className="mt-3 text-[12px] leading-relaxed text-white/55">
-              Para generar imágenes, Google suele pedir que actives la facturación en tu cuenta.
+              To generate images, Google usually requires billing to be enabled on your account.
             </p>
           </details>
         </form>

@@ -20,7 +20,7 @@ export interface ModelSpec {
 export const MODELS: Record<ModelType, ModelSpec> = {
   pro: {
     id: 'gemini-3-pro-image',
-    label: 'Pro — Nano Banana Pro',
+    label: 'Nano Banana Pro',
     wideRatios: false,
     allowsSmall: false,
     supportsSearch: true,
@@ -34,14 +34,14 @@ export const MODELS: Record<ModelType, ModelSpec> = {
   },
   'flash-lite': {
     id: 'gemini-3.1-flash-lite-image',
-    label: 'Nano Banana 2 Lite — rápido',
+    label: 'Nano Banana 2 Lite',
     wideRatios: true,
     allowsSmall: true,
     supportsSearch: false,
   },
   legacy: {
     id: 'gemini-2.5-flash-image',
-    label: 'Nano Banana 1 (legacy)',
+    label: 'Nano Banana (legacy)',
     wideRatios: false,
     allowsSmall: false,
     supportsSearch: false,

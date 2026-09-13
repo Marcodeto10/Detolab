@@ -1,8 +1,9 @@
 import React from 'react';
-import { ArrowRight } from 'lucide-react';
-import { TOOLS, TOOL_ORDER, GALLERY_COVER, type ToolId } from '../lib/tools';
+import { ChevronRight, Sparkles } from 'lucide-react';
+import { TOOLS, type ToolId } from '../lib/tools';
 import { useGallery } from '../lib/galleryContext';
 import { Button, CoverImage } from './ui/controls';
+import { TvCard } from './ui/TvCard';
 
 interface HomeProps {
   userName: string;
@@ -11,97 +12,94 @@ interface HomeProps {
   onOpenImage: (id: string) => void;
 }
 
-const HomeCard: React.FC<{ title: string; description: string; cover: string; onClick: () => void }> = ({
-  title,
-  description,
-  cover,
-  onClick,
-}) => (
-  <button
-    onClick={onClick}
-    className="group relative w-full h-52 md:h-64 lg:h-[36vh] lg:min-h-[260px] rounded-xl overflow-hidden text-left bg-raised"
-  >
-    <CoverImage
-      src={cover}
-      alt=""
-      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-    />
-    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
-    <div className="absolute inset-0 p-4 lg:p-6 flex flex-col justify-end">
-      <h3 className="font-display text-3xl lg:text-[2.75rem] tracking-tight text-white leading-none">{title}</h3>
-      <p className="mt-1.5 lg:mt-2 text-[12px] lg:text-[14px] text-white/75 leading-snug line-clamp-2">{description}</p>
-    </div>
-  </button>
+const SHELF_TOOLS: ToolId[] = ['edit', 'mockup', 'product', 'bulk'];
+
+const ShelfHeader: React.FC<{ title: string; action?: React.ReactNode }> = ({ title, action }) => (
+  <div className="flex items-baseline justify-between gap-4">
+    <h2 className="text-[22px] font-bold tracking-tight">{title}</h2>
+    {action}
+  </div>
 );
 
 export const Home: React.FC<HomeProps> = ({ userName, onOpenTool, onOpenGallery, onOpenImage }) => {
   const { images, ready } = useGallery();
   const firstName = userName.trim().split(/\s+/)[0];
-  const recent = images.slice(0, 12);
+  const recent = images.slice(0, 16);
 
   return (
-    <div className="px-4 py-6 lg:px-10 lg:py-10 space-y-12">
-      <section>
-        <h1 className="font-display text-5xl lg:text-6xl tracking-tight leading-none">Estudio creativo</h1>
-        <p className="mt-3 text-[15px] text-muted">
-          {firstName ? `Hola ${firstName}, elegí` : 'Elegí'} una herramienta para empezar.
-        </p>
-
-        <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-3 lg:gap-4">
-          {TOOL_ORDER.map((id) => (
-            <HomeCard
-              key={id}
-              title={TOOLS[id].name}
-              description={TOOLS[id].description}
-              cover={TOOLS[id].cover}
-              onClick={() => onOpenTool(id)}
-            />
-          ))}
-          <HomeCard
-            title="Galería"
-            description="Todo lo que generaste, ordenado en carpetas."
-            cover={GALLERY_COVER}
-            onClick={onOpenGallery}
-          />
+    <div className="max-w-[1600px] mx-auto px-4 pt-4 pb-10 lg:px-10 lg:pt-8 space-y-10 lg:space-y-12">
+      {/* Destacado, como el "top shelf" de Apple TV */}
+      <section className="relative overflow-hidden rounded-3xl bg-raised h-[64dvh] min-h-[440px] md:h-auto md:aspect-[21/9] md:min-h-[400px]">
+        <CoverImage src={TOOLS.create.cover} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent md:bg-gradient-to-r md:from-black/85 md:via-black/35 md:to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 p-6 md:p-10 lg:p-14 max-w-2xl">
+          <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-white/70">
+            {firstName ? `Welcome back, ${firstName}` : 'Detolab Studio'}
+          </p>
+          <h1 className="mt-2 text-6xl lg:text-8xl font-bold tracking-tight leading-[0.95] text-white">Create</h1>
+          <p className="mt-4 text-[16px] lg:text-[19px] leading-snug text-white/80 max-w-lg">{TOOLS.create.description}</p>
+          <div className="mt-7 flex flex-wrap items-center gap-3">
+            <Button variant="primary" size="lg" onClick={() => onOpenTool('create')}>
+              <Sparkles className="w-4 h-4" />
+              Start creating
+            </Button>
+            <Button size="lg" className="hidden sm:inline-flex" onClick={onOpenGallery}>
+              Open gallery
+            </Button>
+          </div>
         </div>
       </section>
 
+      {/* Fila de herramientas */}
       <section>
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <h2 className="font-display text-4xl lg:text-5xl tracking-tight leading-none">Recientes</h2>
-            <p className="mt-2 text-[14px] text-muted">Lo último que generaste.</p>
-          </div>
-          {images.length > 0 && (
-            <Button variant="ghost" onClick={onOpenGallery}>
-              Ver todas ({images.length})
-              <ArrowRight className="w-4 h-4" />
-            </Button>
-          )}
+        <ShelfHeader title="Tools" />
+        <div className="mt-4 -mx-4 px-4 scroll-px-4 pb-3 pt-1 flex gap-4 overflow-x-auto snap-x snap-mandatory no-scrollbar md:mx-0 md:px-0 md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-6 md:overflow-visible">
+          {SHELF_TOOLS.map((id) => (
+            <TvCard
+              key={id}
+              onClick={() => onOpenTool(id)}
+              className="snap-start shrink-0 w-[78%] sm:w-[46%] md:w-auto"
+              artClassName="aspect-video rounded-2xl"
+              art={<CoverImage src={TOOLS[id].cover} alt="" className="absolute inset-0 w-full h-full object-cover" />}
+            >
+              <p className="mt-3 text-[16px] font-semibold text-ink">{TOOLS[id].name}</p>
+              <p className="mt-0.5 text-[13px] leading-snug text-muted line-clamp-2">{TOOLS[id].description}</p>
+            </TvCard>
+          ))}
         </div>
+      </section>
 
+      {/* Recientes */}
+      <section>
+        <ShelfHeader
+          title="Recent"
+          action={
+            images.length > 0 && (
+              <button onClick={onOpenGallery} className="inline-flex items-center gap-0.5 text-[15px] text-muted hover:text-ink transition-colors">
+                See All
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            )
+          }
+        />
         {recent.length > 0 ? (
-          <div className="mt-5 grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 lg:gap-3">
+          <div className="mt-4 -mx-4 px-4 scroll-px-4 lg:-mx-10 lg:px-10 lg:scroll-px-10 pb-4 pt-1 flex gap-4 overflow-x-auto snap-x no-scrollbar">
             {recent.map((img) => (
-              <button
+              <TvCard
                 key={img.id}
                 onClick={() => onOpenImage(img.id)}
                 title={img.prompt}
-                className="group aspect-square rounded-lg overflow-hidden bg-white/[0.03]"
-              >
-                <img
-                  src={img.url}
-                  alt={img.prompt}
-                  loading="lazy"
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-                />
-              </button>
+                ariaLabel={img.prompt}
+                className="snap-start shrink-0 w-40 lg:w-52"
+                artClassName="aspect-square rounded-2xl"
+                art={<img src={img.url} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />}
+              />
             ))}
           </div>
         ) : (
           ready && (
-            <div className="mt-5 rounded-xl border border-dashed border-line py-12 px-6 text-center text-[14px] text-muted">
-              Todavía no generaste nada. Tus imágenes van a aparecer acá.
+            <div className="mt-4 rounded-2xl bg-raised py-12 px-6 text-center text-[15px] text-muted">
+              Nothing generated yet. Your images will show up here.
             </div>
           )
         )}

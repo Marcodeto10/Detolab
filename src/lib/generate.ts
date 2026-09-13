@@ -14,7 +14,7 @@ type Part = { text: string } | { inlineData: { data: string; mimeType: string } 
 
 export class CancelledError extends Error {
   constructor() {
-    super('Cancelado');
+    super('Cancelled');
     this.name = 'CancelledError';
   }
 }
@@ -45,13 +45,13 @@ const imagePart = async (img: InputImage): Promise<Part> => ({
   inlineData: { data: await fileToBase64(img.file), mimeType: img.file.type || 'image/png' },
 });
 
-/** Instrucciones fijas de la herramienta + lo que escribió el usuario. */
-export const buildPrompt = (toolId: ToolId, prompt: string, strictProduct: boolean): string => {
-  const user = prompt.trim();
-  let builtIn = TOOLS[toolId].builtInPrompt ?? '';
-  if (toolId === 'product' && strictProduct) builtIn = `${BASE_PRODUCT_PROMPT}\n\n${builtIn}`;
-  if (builtIn && user) return `${builtIn}\n\nAdditional instructions: ${user}`;
-  return builtIn || user || 'Generate an image.';
+/** Texto final del pedido. Mismo armado que la versión original. */
+export const buildPrompt = (toolId: ToolId, prompt: string, useBasePrompt: boolean): string => {
+  let finalPrompt = prompt || 'Generate an image.';
+  if (toolId === 'product' && useBasePrompt) {
+    finalPrompt = `${BASE_PRODUCT_PROMPT}\n\nAdditional Instructions: ${finalPrompt}`;
+  }
+  return finalPrompt;
 };
 
 /**
@@ -63,20 +63,21 @@ export const buildParts = async (
   toolId: ToolId,
   inputs: Inputs,
   prompt: string,
-  strictProduct: boolean
+  useBasePrompt: boolean
 ): Promise<Part[]> => {
   const parts: Part[] = [];
   for (const slot of TOOLS[toolId].slots) {
-    for (const img of inputs[slot.id] ?? []) {
-      parts.push(await imagePart(img));
-      parts.push({ text: slot.instruction });
+    const images = inputs[slot.id] ?? [];
+    for (let i = 0; i < images.length; i++) {
+      parts.push(await imagePart(images[i]));
+      parts.push({ text: slot.numbered ? `Image ${i + 1}.` : slot.instruction });
     }
   }
-  parts.push({ text: `PROMPT INSTRUCTIONS: ${buildPrompt(toolId, prompt, strictProduct)}` });
+  parts.push({ text: `PROMPT INSTRUCTIONS: ${buildPrompt(toolId, prompt, useBasePrompt)}` });
   return parts;
 };
 
-/** Lote: la referencia (si hay), una foto base y el prompt compartido. */
+/** Bulk: la referencia (si hay), una foto base y el prompt compartido. */
 export const buildBulkParts = async (
   base: InputImage,
   reference: InputImage | undefined,
@@ -86,11 +87,11 @@ export const buildBulkParts = async (
   const parts: Part[] = [];
   if (reference) parts.push(await imagePart(reference), { text: refSlot.instruction });
   parts.push(await imagePart(base), { text: baseSlot.instruction });
-  parts.push({ text: `PROMPT INSTRUCTIONS: ${prompt.trim() || 'Generate an image.'}` });
+  parts.push({ text: `PROMPT INSTRUCTIONS: ${prompt || 'Generate an image.'}` });
   return parts;
 };
 
-/** Resuelve "Igual a la foto" al ratio soportado más cercano. */
+/** Resuelve "Original photo" al ratio soportado más cercano. */
 export const resolveFormat = async (
   aspectRatio: string,
   modelType: ModelType,
@@ -186,30 +187,33 @@ const apiMessage = (raw: string): string => {
 
 export const isCancelled = (err: unknown) => err instanceof CancelledError;
 
+export const isInvalidKeyError = (err: unknown) =>
+  /API key not valid|API_KEY_INVALID/i.test(err instanceof Error ? err.message : String(err ?? ''));
+
 export const friendlyError = (err: unknown, modelType?: ModelType): string => {
   if (err instanceof TimeoutError) {
-    return 'El modelo tardó más de 2 minutos. Probá de nuevo o usá la calidad "Rápido".';
+    return 'The model took more than 2 minutes. Try again or pick a faster model.';
   }
   if (err instanceof NoImageError) {
     if (/SAFETY|PROHIBITED|BLOCK|RECITATION/i.test(err.reason)) {
-      return 'El modelo bloqueó el pedido por sus filtros de contenido. Probá reformularlo.';
+      return 'The model blocked this request with its content filters. Try rephrasing it.';
     }
     return err.modelText
-      ? `El modelo no devolvió una imagen. Respondió: “${err.modelText.slice(0, 160)}”`
-      : 'El modelo no devolvió una imagen. Probá con instrucciones más concretas.';
+      ? `The model didn't return an image. It replied: “${err.modelText.slice(0, 160)}”`
+      : "The model didn't return an image. Try more specific instructions.";
   }
 
   const raw = err instanceof Error ? err.message : String(err ?? '');
   const msg = apiMessage(raw);
-  const model = modelType ? MODELS[modelType]?.label : 'ese modelo';
+  const model = modelType ? MODELS[modelType]?.label : 'this model';
 
-  if (/API key not valid|API_KEY_INVALID/i.test(raw)) return 'La API key no es válida. Cambiala desde Ajustes.';
-  if (/RESOURCE_EXHAUSTED|429|quota/i.test(raw)) return 'Llegaste al límite de uso de tu key. Esperá un minuto o revisá tu cuota en Google AI Studio.';
-  if (/PERMISSION_DENIED|403/i.test(raw)) return `Tu key no tiene acceso a ${model}. Suele faltar activar la facturación en Google AI Studio. Probá con otra calidad.`;
-  if (/NOT_FOUND|404/i.test(raw)) return `${model} no está disponible para tu key. Probá con otra calidad.`;
-  if (/UNAVAILABLE|503|500|overloaded|INTERNAL/i.test(raw)) return 'Los servidores de Google están saturados. Probá de nuevo en un rato.';
-  if (/Failed to fetch|NetworkError|network/i.test(raw)) return 'No hay conexión. Revisá internet y probá de nuevo.';
-  return msg.length > 220 ? `${msg.slice(0, 220)}…` : msg || 'Algo salió mal. Probá de nuevo.';
+  if (isInvalidKeyError(err)) return 'Your API key is not valid. Change it in Settings.';
+  if (/RESOURCE_EXHAUSTED|429|quota/i.test(raw)) return "You've hit your key's usage limit. Wait a minute or check your quota in Google AI Studio.";
+  if (/PERMISSION_DENIED|403/i.test(raw)) return `Your key doesn't have access to ${model}. Billing usually needs to be enabled in Google AI Studio. Try another model.`;
+  if (/NOT_FOUND|404/i.test(raw)) return `${model} isn't available for your key. Try another model.`;
+  if (/UNAVAILABLE|503|500|overloaded|INTERNAL/i.test(raw)) return "Google's servers are overloaded. Try again in a bit.";
+  if (/Failed to fetch|NetworkError|network/i.test(raw)) return 'No connection. Check your internet and try again.';
+  return msg.length > 220 ? `${msg.slice(0, 220)}…` : msg || 'Something went wrong. Try again.';
 };
 
 export const improvePrompt = async (apiKey: string, prompt: string): Promise<string> => {
@@ -226,7 +230,6 @@ Rewrite the prompt below so that it:
 - Names materials, finishes and colours explicitly instead of using vague mood words.
 - Says what must stay UNCHANGED from any input image.
 - Stays under 150 words. Shorter is better if the intent is already unambiguous.
-- Keeps the same language the original prompt is written in.
 
 Do not add stylistic flourishes the user did not ask for.
 Return ONLY the rewritten prompt, no preamble, no explanations.
@@ -234,7 +237,7 @@ Return ONLY the rewritten prompt, no preamble, no explanations.
 Original Prompt: ${prompt}`,
   });
   const text = response.text?.trim();
-  if (!text) throw new Error('No se pudo mejorar el prompt.');
+  if (!text) throw new Error("Couldn't improve the prompt.");
   return text;
 };
 

@@ -9,13 +9,25 @@ import {
   Loader2,
   Pencil,
   RefreshCw,
+  RotateCcw,
   SlidersHorizontal,
   Sparkles,
   SquareSplitHorizontal,
   Wand2,
   X,
 } from 'lucide-react';
-import { TOOLS, TOOL_ORDER, USE_AS, baseSlotOf, missingFor, type Inputs, type SlotId, type ToolId } from '../../lib/tools';
+import {
+  BASE_PRODUCT_PROMPT,
+  TOOLS,
+  TOOL_ORDER,
+  USE_AS,
+  baseSlotOf,
+  joinList,
+  missingFor,
+  type Inputs,
+  type SlotId,
+  type ToolId,
+} from '../../lib/tools';
 import {
   downloadName,
   downloadUrl,
@@ -29,7 +41,6 @@ import {
 import {
   buildBulkParts,
   buildParts,
-  buildPrompt,
   friendlyError,
   improvePrompt,
   isCancelled,
@@ -37,7 +48,6 @@ import {
   resolveFormat,
 } from '../../lib/generate';
 import {
-  QUALITY,
   getApiKey,
   loadSettings,
   normalizeSettings,
@@ -45,7 +55,7 @@ import {
   saveSettings,
   type StudioSettings,
 } from '../../lib/settings';
-import { ratiosFor, sizesFor, supportsSearch } from '../../lib/models';
+import { MODELS, MODEL_ORDER, ratiosFor, sizesFor, supportsSearch, type ModelType } from '../../lib/models';
 import { useGallery } from '../../lib/galleryContext';
 import { useToast } from '../ui/Toast';
 import { Button, Label, Menu, Segmented, Select, Toggle } from '../ui/controls';
@@ -98,12 +108,18 @@ interface StudioProps {
 }
 
 const EMPTY_INPUTS: Record<ToolId, Inputs> = { create: {}, edit: {}, mockup: {}, product: {}, bulk: {} };
-const EMPTY_PROMPTS: Record<ToolId, string> = { create: '', edit: '', mockup: '', product: '', bulk: '' };
+
+// Mockup y Product arrancan con su prompt precargado y editable, como en la versión original
+const INITIAL_PROMPTS: Record<ToolId, string> = {
+  create: '',
+  edit: '',
+  mockup: TOOLS.mockup.defaultPrompt ?? '',
+  product: TOOLS.product.defaultPrompt ?? '',
+  bulk: '',
+};
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.userAgent);
-const joinEs = (items: string[]) =>
-  items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} y ${items[items.length - 1]}`;
 
 export const Studio: React.FC<StudioProps> = ({
   visible,
@@ -118,7 +134,7 @@ export const Studio: React.FC<StudioProps> = ({
   const gallery = useGallery();
 
   const [inputs, setInputs] = useState(EMPTY_INPUTS);
-  const [prompts, setPrompts] = useState(EMPTY_PROMPTS);
+  const [prompts, setPrompts] = useState(INITIAL_PROMPTS);
   const [settings, setSettings] = useState<StudioSettings>(loadSettings);
   const [activeSlot, setActiveSlot] = useState<SlotId | null>(null);
   const [loadingSlot, setLoadingSlot] = useState<SlotId | null>(null);
@@ -139,7 +155,7 @@ export const Studio: React.FC<StudioProps> = ({
   const toolInputs = inputs[tool];
   const prompt = prompts[tool];
   const missing = missingFor(tool, toolInputs, prompt);
-  const hasBase = !!baseSlotOf(tool);
+  const model = MODELS[settings.modelType];
 
   useEffect(() => saveSettings(settings), [settings]);
 
@@ -172,7 +188,7 @@ export const Studio: React.FC<StudioProps> = ({
     const incoming = valid.map((f) => makeInput(f, source));
     const currentCount = inputs[t][slotId]?.length ?? 0;
     if (slot.max > 1 && currentCount + incoming.length > slot.max) {
-      toast({ message: `${slot.label}: máximo ${slot.max} imágenes.` });
+      toast({ message: `${slot.label}: up to ${slot.max} images.` });
     }
 
     setInputs((prev) => {
@@ -194,7 +210,7 @@ export const Studio: React.FC<StudioProps> = ({
       addFiles(t, slotId, [file], source);
       return true;
     } catch (err) {
-      toast({ message: err instanceof Error ? err.message : 'No se pudo cargar la imagen.', tone: 'error' });
+      toast({ message: err instanceof Error ? err.message : "Couldn't load the image.", tone: 'error' });
       return false;
     } finally {
       setLoadingSlot(null);
@@ -215,14 +231,14 @@ export const Studio: React.FC<StudioProps> = ({
       return { ...prev, [t]: { ...prev[t], [slotId]: [] } };
     });
 
-  // Imagen mandada desde la galería o el visor ("Usar en…")
+  // Imagen mandada desde la galería o el visor ("Use in…")
   useEffect(() => {
     if (!request) return;
     const req = request;
     onRequestHandled();
     addUrl(req.tool, req.slot, req.url, 'gallery').then((ok) => {
       if (!ok) return;
-      toast({ message: `Imagen lista en ${TOOLS[req.tool].name}.`, tone: 'success' });
+      toast({ message: `Image ready in ${TOOLS[req.tool].name}.`, tone: 'success' });
       if (req.tool === 'edit') setTimeout(() => promptRef.current?.focus(), 60);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -243,8 +259,8 @@ export const Studio: React.FC<StudioProps> = ({
       toast({
         message:
           err?.name === 'QuotaExceededError'
-            ? 'No queda espacio en este navegador. Descargá y borrá imágenes viejas.'
-            : 'La imagen se generó pero no se pudo guardar en la galería. Descargala.',
+            ? 'Your browser is out of storage. Download and delete old images.'
+            : "The image was generated but couldn't be saved to the gallery. Download it.",
         tone: 'error',
       });
       return { ...base, fallbackUrl: dataUrl };
@@ -260,12 +276,12 @@ export const Studio: React.FC<StudioProps> = ({
 
     const need = missingFor(t, inputsNow, promptNow);
     if (need.length) {
-      toast({ message: `Falta ${joinEs(need)}.`, tone: 'error' });
+      toast({ message: `Missing ${joinList(need)}.`, tone: 'error' });
       return;
     }
     const apiKey = getApiKey();
     if (!apiKey) {
-      toast({ message: 'No hay API key cargada. Agregala desde Ajustes.', tone: 'error' });
+      toast({ message: 'No API key found. Add one in Settings.', tone: 'error' });
       return;
     }
 
@@ -315,7 +331,7 @@ export const Studio: React.FC<StudioProps> = ({
       if (!controller.signal.aborted) {
         const all = ok === bases.length;
         toast({
-          message: all ? `Lote listo: ${ok} ${ok === 1 ? 'imagen' : 'imágenes'}.` : `Lote terminado: ${ok} de ${bases.length} salieron bien.`,
+          message: all ? `Batch done: ${ok} ${ok === 1 ? 'image' : 'images'}.` : `Batch finished: ${ok} of ${bases.length} succeeded.`,
           tone: all ? 'success' : 'error',
         });
       }
@@ -330,10 +346,11 @@ export const Studio: React.FC<StudioProps> = ({
       const baseSpec = baseSlotOf(t);
       const baseImg = baseSpec ? inputsNow[baseSpec.id]?.[0] : undefined;
       const [parts, format] = await Promise.all([
-        buildParts(t, inputsNow, promptNow, s.strictProduct),
+        buildParts(t, inputsNow, promptNow, s.useBasePrompt),
         resolveFormat(s.aspectRatio, s.modelType, baseImg?.file),
       ]);
-      const baseUrl = baseImg ? URL.createObjectURL(baseImg.file) : undefined;
+      // En Create las imágenes son referencias, así que no hay antes/después
+      const baseUrl = baseImg && t !== 'create' ? URL.createObjectURL(baseImg.file) : undefined;
       const errors: unknown[] = [];
       let shown = false;
 
@@ -362,7 +379,7 @@ export const Studio: React.FC<StudioProps> = ({
       if (!controller.signal.aborted && errors.length) {
         const msg = friendlyError(errors[0], s.modelType);
         if (errors.length === count) setLastError(msg);
-        toast({ message: errors.length === count ? msg : `${count - errors.length} de ${count} salieron bien. ${msg}`, tone: 'error' });
+        toast({ message: errors.length === count ? msg : `${count - errors.length} of ${count} succeeded. ${msg}`, tone: 'error' });
       }
     } catch (err) {
       if (!isCancelled(err)) {
@@ -379,22 +396,22 @@ export const Studio: React.FC<StudioProps> = ({
     if (!run) return;
     run.controller.abort();
     setRun(null);
-    toast({ message: 'Cancelado. Lo que Google ya estaba procesando puede cobrarse igual.' });
+    toast({ message: 'Cancelled. Anything Google was already processing may still be billed.' });
   };
 
   const improve = async () => {
     const t = tool;
-    const original = prompts[t].trim();
+    const original = prompts[t];
     const apiKey = getApiKey();
-    if (!original || !apiKey) return;
+    if (!original.trim() || !apiKey) return;
     setImproving(true);
     try {
       const better = await improvePrompt(apiKey, original);
       setPrompts((p) => ({ ...p, [t]: better }));
       toast({
-        message: 'Prompt mejorado.',
+        message: 'Prompt improved.',
         tone: 'success',
-        action: { label: 'Deshacer', onClick: () => setPrompts((p) => ({ ...p, [t]: original })) },
+        action: { label: 'Undo', onClick: () => setPrompts((p) => ({ ...p, [t]: original })) },
       });
     } catch (err) {
       toast({ message: friendlyError(err), tone: 'error' });
@@ -409,7 +426,7 @@ export const Studio: React.FC<StudioProps> = ({
     onToolChange(t);
     const ok = await addUrl(t, slot, url, 'result');
     if (!ok) return;
-    toast({ message: `Imagen lista en ${TOOLS[t].name}.`, tone: 'success' });
+    toast({ message: `Image ready in ${TOOLS[t].name}.`, tone: 'success' });
     if (t === 'edit') setTimeout(() => promptRef.current?.focus(), 60);
     if (window.innerWidth < 1024) window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -436,7 +453,7 @@ export const Studio: React.FC<StudioProps> = ({
       if (files.length) {
         e.preventDefault();
         addFiles(tool, target, files, 'paste');
-        toast({ message: `Imagen pegada en “${slotSpec(tool, target)?.label}”.`, tone: 'success' });
+        toast({ message: `Image pasted into “${slotSpec(tool, target)?.label}”.`, tone: 'success' });
         return;
       }
       const text = e.clipboardData?.getData('text')?.trim() ?? '';
@@ -473,31 +490,34 @@ export const Studio: React.FC<StudioProps> = ({
   const bulkItems = bulkBatchId ? visibleGens.filter((g) => g.batchId === bulkBatchId).reverse() : [];
   const hasCanvasContent = tool === 'bulk' ? bulkItems.length > 0 || !!runHere : !!selected || !!runHere;
   const bulkCount = toolInputs['bulk-base']?.length ?? 0;
-  const quality = QUALITY.find((q) => q.id === settings.modelType);
+  const promptEdited = !!spec.defaultPrompt && prompt !== spec.defaultPrompt;
 
   const generateLabel =
     tool === 'bulk'
       ? bulkCount
-        ? `Procesar ${bulkCount} ${bulkCount === 1 ? 'foto' : 'fotos'}`
-        : 'Procesar fotos'
+        ? `Process ${bulkCount} ${bulkCount === 1 ? 'photo' : 'photos'}`
+        : 'Process photos'
       : settings.count > 1
-        ? `Generar ${settings.count} imágenes`
-        : 'Generar';
+        ? `Generate ${settings.count} images`
+        : 'Generate';
 
+  const hasImages = spec.slots.some((s) => toolInputs[s.id]?.length);
   const steps = [
-    ...spec.slots.filter((s) => s.required).map((s) => ({ label: `Agregá: ${s.label.toLowerCase()}`, done: !!toolInputs[s.id]?.length })),
-    ...(spec.promptRequired
-      ? [{ label: tool === 'create' ? 'Describí lo que querés ver' : 'Escribí qué hacer', done: !missing.some((m) => m.startsWith('una') || m.startsWith('las')) }]
-      : [{ label: 'Sumá indicaciones (opcional)', done: !!prompt.trim() }]),
-    { label: 'Tocá Generar', done: false },
+    ...spec.slots.filter((s) => s.required).map((s) => ({ label: `Add ${s.label.toLowerCase()}`, done: !!toolInputs[s.id]?.length })),
+    tool === 'create'
+      ? { label: 'Write a prompt (add images if you want)', done: !!prompt.trim() || hasImages }
+      : spec.promptRequired
+        ? { label: 'Write the instructions', done: !!prompt.trim() }
+        : { label: 'Adjust the prompt if you want', done: true },
+    { label: 'Hit Generate', done: false },
   ];
 
   const renderEmpty = () => (
     <div className="max-w-xs text-center">
-      <div className="mx-auto w-14 h-14 rounded-2xl border border-line grid place-items-center text-faint">
+      <div className="mx-auto w-14 h-14 rounded-2xl bg-raised grid place-items-center text-faint">
         <Sparkles className="w-6 h-6" />
       </div>
-      <p className="mt-5 text-[15px] text-ink">El resultado va a aparecer acá</p>
+      <p className="mt-5 text-[15px] text-ink">Your result will appear here</p>
       <ul className="mt-5 inline-flex flex-col gap-2.5 text-left">
         {steps.map((s) => (
           <li key={s.label} className="flex items-center gap-2.5 text-[14px]">
@@ -510,14 +530,16 @@ export const Studio: React.FC<StudioProps> = ({
   );
 
   const renderLoading = (r: RunState) => (
-    <div className="w-full max-w-md aspect-square rounded-2xl border border-line bg-white/[0.02] relative overflow-hidden grid place-items-center">
+    <div className="w-full max-w-md aspect-square rounded-3xl bg-raised relative overflow-hidden grid place-items-center">
       <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.05] to-transparent animate-pulse" />
       <div className="relative text-center px-6">
         <Loader2 className="w-7 h-7 mx-auto animate-spin text-muted" />
-        <p className="mt-4 text-[15px]">Generando{r.total > 1 ? ` ${r.total} imágenes` : ''}…</p>
-        <p className="mt-1 text-[13px] text-faint tabular-nums">{elapsed} s · suele tardar entre 15 y 60 s</p>
+        <p className="mt-4 text-[15px]">Generating{r.total > 1 ? ` ${r.total} images` : ''}…</p>
+        <p className="mt-1 text-[13px] text-faint tabular-nums">
+          {elapsed}s · {MODELS[settings.modelType].label} usually takes 15–60s
+        </p>
         <Button className="mt-5" onClick={cancel}>
-          Cancelar
+          Cancel
         </Button>
       </div>
     </div>
@@ -526,12 +548,12 @@ export const Studio: React.FC<StudioProps> = ({
   const renderBulk = () => (
     <div className="w-full">
       {runHere && (
-        <div className="rounded-xl border border-line bg-white/[0.03] p-4">
+        <div className="rounded-2xl bg-raised p-4">
           <div className="flex items-center justify-between text-[13px]">
             <span>
-              Procesando {Math.min(runHere.done + runHere.failed + 1, runHere.total)} de {runHere.total}
+              Processing {Math.min(runHere.done + runHere.failed + 1, runHere.total)} of {runHere.total}
             </span>
-            <span className="text-faint tabular-nums">{elapsed} s</span>
+            <span className="text-faint tabular-nums">{elapsed}s</span>
           </div>
           <div className="mt-3 h-1.5 rounded-full bg-white/10 overflow-hidden">
             <div
@@ -541,7 +563,7 @@ export const Studio: React.FC<StudioProps> = ({
           </div>
           <div className="mt-3 flex justify-end">
             <Button size="sm" variant="ghost" onClick={cancel}>
-              Cancelar
+              Cancel
             </Button>
           </div>
         </div>
@@ -569,7 +591,7 @@ export const Studio: React.FC<StudioProps> = ({
         )}
         {runHere &&
           Array.from({ length: Math.max(0, runHere.total - runHere.done - runHere.failed) }).map((_, i) => (
-            <div key={`pending-${i}`} className="aspect-square rounded-xl border border-line bg-white/[0.02] animate-pulse" />
+            <div key={`pending-${i}`} className="aspect-square rounded-xl bg-raised animate-pulse" />
           ))}
       </div>
 
@@ -577,7 +599,7 @@ export const Studio: React.FC<StudioProps> = ({
         <div className="mt-5 flex justify-center">
           <Button onClick={() => gallery.exportZip(bulkItems.map((g) => g.galleryId).filter(Boolean) as string[])}>
             <Download className="w-4 h-4" />
-            Descargar lote (.zip)
+            Download batch (.zip)
           </Button>
         </div>
       )}
@@ -585,12 +607,12 @@ export const Studio: React.FC<StudioProps> = ({
   );
 
   return (
-    <div className="flex flex-col lg:flex-row lg:h-dvh">
+    <div className="flex flex-col lg:flex-row lg:h-[calc(100dvh-3.5rem)]">
       {/* Panel de controles */}
-      <aside className="lg:w-[400px] xl:w-[420px] shrink-0 flex flex-col lg:h-dvh lg:border-r border-line bg-panel/40">
+      <aside className="lg:w-[400px] xl:w-[420px] shrink-0 flex flex-col lg:h-[calc(100dvh-3.5rem)] lg:border-r border-line bg-panel">
         <div className="lg:flex-1 lg:min-h-0 lg:overflow-y-auto custom-scrollbar">
           <div className="px-4 lg:px-6 pt-4 lg:pt-6 pb-6 space-y-6">
-            <div role="tablist" aria-label="Herramientas" className="grid grid-cols-5 gap-1 p-1 rounded-xl bg-white/[0.04] border border-line">
+            <div role="tablist" aria-label="Tools" className="grid grid-cols-5 gap-0.5 p-0.5 rounded-[10px] bg-fill">
               {TOOL_ORDER.map((id) => (
                 <button
                   key={id}
@@ -598,8 +620,8 @@ export const Studio: React.FC<StudioProps> = ({
                   aria-selected={id === tool}
                   onClick={() => onToolChange(id)}
                   className={cn(
-                    'h-8 min-w-0 px-0.5 rounded-lg text-[12px] sm:text-[13px] font-medium truncate transition-colors',
-                    id === tool ? 'bg-white text-black' : 'text-muted hover:text-ink hover:bg-white/[0.06]'
+                    'h-8 min-w-0 px-0.5 rounded-[8px] text-[12px] sm:text-[13px] font-semibold truncate transition-all',
+                    id === tool ? 'bg-[#636366] text-white shadow-[0_3px_8px_rgba(0,0,0,0.25)]' : 'text-ink/80 hover:text-ink'
                   )}
                 >
                   {TOOLS[id].name}
@@ -608,7 +630,7 @@ export const Studio: React.FC<StudioProps> = ({
             </div>
 
             <header>
-              <h1 className="font-display text-5xl tracking-tight leading-none">{spec.name}</h1>
+              <h1 className="text-[32px] font-bold tracking-tight leading-tight">{spec.name}</h1>
               <p className="mt-2 text-[14px] text-muted leading-relaxed">{spec.description}</p>
             </header>
 
@@ -632,67 +654,96 @@ export const Studio: React.FC<StudioProps> = ({
             </div>
 
             <div>
-              <Label htmlFor="studio-prompt" hint={spec.promptRequired ? undefined : 'Opcional'}>
-                {spec.promptLabel}
-              </Label>
-              <div className="rounded-xl border border-line bg-white/[0.03] focus-within:border-white/30 transition-colors">
+              <Label htmlFor="studio-prompt">{spec.promptLabel}</Label>
+              <div className="rounded-2xl bg-fill-soft ring-1 ring-transparent focus-within:ring-white/25 transition">
                 <textarea
                   id="studio-prompt"
                   ref={promptRef}
                   value={prompt}
                   onChange={(e) => setPrompts((p) => ({ ...p, [tool]: e.target.value }))}
                   placeholder={spec.promptPlaceholder}
-                  rows={spec.builtInPrompt ? 3 : 5}
+                  rows={spec.defaultPrompt ? 8 : 5}
                   className="block w-full resize-y min-h-[84px] bg-transparent px-3.5 pt-3 pb-1 text-[14px] leading-relaxed text-ink placeholder:text-faint outline-none"
                 />
                 <div className="flex items-center justify-between gap-2 px-2 pb-2">
                   <span className="px-1.5 text-[12px] text-faint tabular-nums">
-                    {prompt.trim() ? `${prompt.trim().split(/\s+/).length} palabras` : ''}
+                    {prompt.trim() ? `${prompt.trim().split(/\s+/).length} words` : ''}
                   </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={improve}
-                    loading={improving}
-                    disabled={!prompt.trim()}
-                    title="Reescribe tu prompt para que el modelo lo entienda mejor"
-                  >
-                    {!improving && <Wand2 className="w-3.5 h-3.5" />}
-                    Mejorar prompt
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    {promptEdited && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setPrompts((p) => ({ ...p, [tool]: spec.defaultPrompt ?? '' }))}
+                        title="Restore the original prompt"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        Reset
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={improve}
+                      loading={improving}
+                      disabled={!prompt.trim()}
+                      title="Rewrites your prompt so the model follows it better"
+                    >
+                      {!improving && <Wand2 className="w-3.5 h-3.5" />}
+                      Improve prompt
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
 
+            {tool === 'product' && (
+              <div className="rounded-2xl bg-fill-soft px-4 py-3.5 space-y-3">
+                <Toggle
+                  checked={settings.useBasePrompt}
+                  onChange={(v) => updateSettings({ useBasePrompt: v })}
+                  label="Base prompt"
+                  hint="Adds fixed instructions so the product and logo stay exactly as uploaded."
+                />
+                {settings.useBasePrompt && (
+                  <details className="group">
+                    <summary className="list-none flex items-center gap-1.5 text-[13px] text-muted hover:text-ink">
+                      <ChevronDown className="w-3.5 h-3.5 -rotate-90 group-open:rotate-0 transition-transform" />
+                      View base prompt
+                    </summary>
+                    <pre className="mt-2 max-h-48 overflow-y-auto custom-scrollbar whitespace-pre-wrap rounded-lg bg-black/30 p-3 font-sans text-[12px] leading-relaxed text-faint">
+                      {BASE_PRODUCT_PROMPT}
+                    </pre>
+                  </details>
+                )}
+              </div>
+            )}
+
             <div className="space-y-4">
               <div>
-                <Label>Calidad</Label>
-                <Segmented
-                  ariaLabel="Calidad"
+                <Label hint={<span className="font-mono">{model.id}</span>}>Model</Label>
+                <Select
+                  aria-label="Model"
                   value={settings.modelType}
-                  onChange={(v) => updateSettings({ modelType: v })}
-                  options={QUALITY.map((q) => ({ value: q.id, label: q.label, title: q.hint }))}
+                  onChange={(e) => updateSettings({ modelType: e.target.value as ModelType })}
+                  options={MODEL_ORDER.map((m) => ({ value: m, label: MODELS[m].label }))}
                 />
-                {quality && <p className="mt-1.5 text-[12px] text-faint">{quality.hint}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Formato</Label>
+                  <Label>Aspect ratio</Label>
                   <Select
-                    aria-label="Formato"
+                    aria-label="Aspect ratio"
                     value={settings.aspectRatio}
                     onChange={(e) => updateSettings({ aspectRatio: e.target.value })}
-                    options={ratiosFor(settings.modelType).map((r) => ({
-                      value: r,
-                      label: r === 'ORIGINAL' && !hasBase ? 'Automático' : ratioLabel(r),
-                    }))}
+                    options={ratiosFor(settings.modelType).map((r) => ({ value: r, label: ratioLabel(r) }))}
                   />
                 </div>
                 <div>
-                  <Label>Tamaño</Label>
+                  <Label>Size</Label>
                   <Select
-                    aria-label="Tamaño"
+                    aria-label="Size"
                     value={settings.imageSize}
                     onChange={(e) => updateSettings({ imageSize: e.target.value })}
                     options={sizesFor(settings.modelType).map((sz) => ({ value: sz, label: sz }))}
@@ -702,9 +753,9 @@ export const Studio: React.FC<StudioProps> = ({
 
               {tool !== 'bulk' && (
                 <div>
-                  <Label hint="Cada una se cobra aparte">Variantes</Label>
+                  <Label hint="Each one is billed separately">Variations</Label>
                   <Segmented
-                    ariaLabel="Variantes"
+                    ariaLabel="Variations"
                     value={settings.count}
                     onChange={(v) => updateSettings({ count: v })}
                     options={[1, 2, 3, 4].map((n) => ({ value: n, label: String(n) }))}
@@ -712,7 +763,7 @@ export const Studio: React.FC<StudioProps> = ({
                 </div>
               )}
 
-              <div className="rounded-xl border border-line">
+              <div className="rounded-2xl bg-fill-soft">
                 <button
                   type="button"
                   onClick={() => setShowMore((v) => !v)}
@@ -721,42 +772,23 @@ export const Studio: React.FC<StudioProps> = ({
                 >
                   <span className="flex items-center gap-2">
                     <SlidersHorizontal className="w-4 h-4" />
-                    Más opciones
+                    More options
                   </span>
                   <ChevronDown className={cn('w-4 h-4 transition-transform', showMore && 'rotate-180')} />
                 </button>
                 {showMore && (
-                  <div className="px-3.5 pt-4 pb-4 space-y-4 border-t border-line">
+                  <div className="px-3.5 pt-4 pb-4 border-t border-line">
                     <Toggle
                       checked={settings.useSearch && supportsSearch(settings.modelType)}
                       disabled={!supportsSearch(settings.modelType)}
                       onChange={(v) => updateSettings({ useSearch: v })}
-                      label="Buscar en Google"
+                      label="Google Search grounding"
                       hint={
                         supportsSearch(settings.modelType)
-                          ? 'Usa datos reales (marcas, lugares, clima) para armar la imagen.'
-                          : 'No disponible en calidad Rápido.'
+                          ? 'Uses real-world info (brands, places, weather) to build the image.'
+                          : `Not available with ${model.label}.`
                       }
                     />
-                    {tool === 'product' && (
-                      <Toggle
-                        checked={settings.strictProduct}
-                        onChange={(v) => updateSettings({ strictProduct: v })}
-                        label="Producto y logo intactos"
-                        hint="Le pide al modelo que no redibuje ni cambie el producto ni el logo."
-                      />
-                    )}
-                    {spec.builtInPrompt && (
-                      <details className="group">
-                        <summary className="list-none flex items-center gap-1.5 text-[13px] text-muted hover:text-ink">
-                          <ChevronDown className="w-3.5 h-3.5 -rotate-90 group-open:rotate-0 transition-transform" />
-                          Ver instrucciones fijas que se mandan
-                        </summary>
-                        <pre className="mt-2 max-h-48 overflow-y-auto custom-scrollbar whitespace-pre-wrap rounded-lg bg-black/30 p-3 font-sans text-[12px] leading-relaxed text-faint">
-                          {buildPrompt(tool, '', settings.strictProduct)}
-                        </pre>
-                      </details>
-                    )}
                   </div>
                 )}
               </div>
@@ -764,7 +796,7 @@ export const Studio: React.FC<StudioProps> = ({
           </div>
         </div>
 
-        <div className="sticky bottom-16 lg:bottom-0 z-30 px-4 lg:px-6 py-3 lg:py-4 border-t border-line bg-canvas/90 lg:bg-panel/80 backdrop-blur-xl space-y-2">
+        <div className="sticky bottom-16 lg:bottom-0 z-30 px-4 lg:px-6 py-3 lg:py-4 border-t border-line bg-black/80 lg:bg-panel/90 backdrop-blur-2xl backdrop-saturate-150 space-y-2">
           {lastError && !run && (
             <p className="flex gap-2 text-[13px] text-red-300 leading-snug">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -774,7 +806,7 @@ export const Studio: React.FC<StudioProps> = ({
           {run ? (
             <Button size="lg" className="w-full" onClick={cancel}>
               <X className="w-4 h-4" />
-              Cancelar {run.tool !== tool ? `(${TOOLS[run.tool].name})` : ''} · {elapsed} s
+              Cancel {run.tool !== tool ? `(${TOOLS[run.tool].name})` : ''} · {elapsed}s
             </Button>
           ) : (
             <Button size="lg" variant="primary" className="w-full" onClick={generate} disabled={missing.length > 0}>
@@ -783,7 +815,7 @@ export const Studio: React.FC<StudioProps> = ({
             </Button>
           )}
           <p className={cn('text-[12px] text-faint text-center', !missing.length && 'hidden lg:block')}>
-            {missing.length ? `Falta ${joinEs(missing)}` : `${isMac ? '⌘' : 'Ctrl'} + Enter para generar`}
+            {missing.length ? `Missing ${joinList(missing)}` : `${isMac ? '⌘' : 'Ctrl'} + Enter to generate`}
           </p>
         </div>
       </aside>
@@ -791,16 +823,16 @@ export const Studio: React.FC<StudioProps> = ({
       {/* Resultado */}
       <section
         ref={canvasRef}
-        className={cn('flex-1 min-w-0 flex flex-col lg:h-dvh scroll-mt-14', hasCanvasContent && 'order-first lg:order-none')}
+        className={cn('flex-1 min-w-0 flex flex-col lg:h-[calc(100dvh-3.5rem)] scroll-mt-14', hasCanvasContent && 'order-first lg:order-none')}
       >
         {run && run.tool !== tool && (
-          <div className="mx-4 mt-4 lg:mx-8 lg:mt-6 flex items-center gap-3 rounded-xl border border-line bg-white/[0.03] px-4 py-2.5 text-[13px]">
+          <div className="mx-4 mt-4 lg:mx-8 lg:mt-6 flex items-center gap-3 rounded-2xl bg-raised px-4 py-2.5 text-[13px]">
             <Loader2 className="w-4 h-4 animate-spin text-muted" />
             <span className="flex-1">
-              Generando en {TOOLS[run.tool].name}… <span className="text-faint tabular-nums">{elapsed} s</span>
+              Generating in {TOOLS[run.tool].name}… <span className="text-faint tabular-nums">{elapsed}s</span>
             </span>
             <button className="text-muted hover:text-ink" onClick={() => onToolChange(run.tool)}>
-              Ver
+              View
             </button>
           </div>
         )}
@@ -821,7 +853,7 @@ export const Studio: React.FC<StudioProps> = ({
             compare && selected.baseUrl ? (
               <CompareSlider before={selected.baseUrl} after={selectedUrl} className="w-full h-full" />
             ) : (
-              <img src={selectedUrl} alt={selected.prompt} className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" />
+              <img src={selectedUrl} alt={selected.prompt} className="max-w-full max-h-full object-contain rounded-2xl shadow-[0_30px_80px_rgba(0,0,0,0.6)]" />
             )
           ) : (
             renderEmpty()
@@ -833,7 +865,7 @@ export const Studio: React.FC<StudioProps> = ({
             {runHere && runHere.done > 0 && (
               <p className="flex items-center justify-center gap-2 text-[13px] text-muted">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Generando {Math.min(runHere.done + runHere.failed + 1, runHere.total)} de {runHere.total}…
+                Generating {Math.min(runHere.done + runHere.failed + 1, runHere.total)} of {runHere.total}…
               </p>
             )}
             <p className="text-center text-[13px] text-faint line-clamp-1" title={selected.prompt}>
@@ -842,18 +874,18 @@ export const Studio: React.FC<StudioProps> = ({
             <div className="flex flex-wrap items-center justify-center gap-2">
               <Button variant="primary" onClick={() => downloadUrl(selectedUrl, downloadName(selected.tool, selected.galleryId))}>
                 <Download className="w-4 h-4" />
-                Descargar
+                Download
               </Button>
               <Button onClick={() => useResultAs(selected, 'edit', 'edit-base')}>
                 <Pencil className="w-4 h-4" />
-                Editar esta imagen
+                Edit this image
               </Button>
               <Menu
                 side="top"
                 items={USE_AS.slice(1).map((u) => ({ label: u.label, onClick: () => useResultAs(selected, u.tool, u.slot) }))}
                 trigger={(open) => (
                   <Button aria-expanded={open}>
-                    Usar en…
+                    Use in…
                     <ChevronDown className="w-4 h-4" />
                   </Button>
                 )}
@@ -861,13 +893,13 @@ export const Studio: React.FC<StudioProps> = ({
               {selected.baseUrl && (
                 <Button onClick={() => setCompare((c) => !c)} aria-pressed={compare}>
                   <SquareSplitHorizontal className="w-4 h-4" />
-                  {compare ? 'Ver resultado' : 'Antes / después'}
+                  {compare ? 'Show result' : 'Before / after'}
                 </Button>
               )}
               {selected.tool === tool && !run && (
                 <Button variant="ghost" onClick={generate} disabled={missing.length > 0}>
                   <RefreshCw className="w-4 h-4" />
-                  Otra versión
+                  Another version
                 </Button>
               )}
             </div>
@@ -884,7 +916,7 @@ export const Studio: React.FC<StudioProps> = ({
                     setSelectedId(g.id);
                     setCompare(false);
                   }}
-                  aria-label="Ver este resultado"
+                  aria-label="Show this result"
                   aria-current={g.id === selectedId}
                   className={cn(
                     'shrink-0 w-14 h-14 rounded-lg overflow-hidden ring-2 ring-offset-2 ring-offset-canvas transition',
@@ -897,7 +929,7 @@ export const Studio: React.FC<StudioProps> = ({
             </div>
             <Button size="sm" variant="ghost" className="ml-auto shrink-0" onClick={onOpenGallery}>
               <Images className="w-4 h-4" />
-              Galería
+              Gallery
             </Button>
           </div>
         )}

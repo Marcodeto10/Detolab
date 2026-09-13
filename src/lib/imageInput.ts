@@ -43,10 +43,10 @@ const PROXIES = [
 ];
 
 /** Convierte una URL (blob:, data: o http) en un File. */
-export const fileFromUrl = async (url: string, name = 'imagen'): Promise<File> => {
+export const fileFromUrl = async (url: string, name = 'image'): Promise<File> => {
   const u = url.trim();
   if (!/^(https?:|data:|blob:)/i.test(u)) {
-    throw new Error('Pegá un link que empiece con http o https.');
+    throw new Error('Paste a link that starts with http or https.');
   }
 
   let res: Response | null = null;
@@ -74,11 +74,11 @@ export const fileFromUrl = async (url: string, name = 'imagen'): Promise<File> =
   }
 
   if (!res?.ok) {
-    throw new Error('No se pudo traer la imagen de ese link. Bajala y subila a mano.');
+    throw new Error("Couldn't fetch the image from that link. Download it and upload it manually.");
   }
   const blob = await res.blob();
   if (!blob.type.startsWith('image/')) {
-    throw new Error('Ese link no es una imagen.');
+    throw new Error("That link isn't an image.");
   }
   return new File([blob], `${name}.${extFor(blob.type)}`, { type: blob.type });
 };

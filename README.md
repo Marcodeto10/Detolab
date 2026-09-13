@@ -1,86 +1,89 @@
 # DETOLAB
 
-Estudio de generación y edición de imágenes sobre la Gemini API (Nano Banana).
-Frontend puro: sin backend, sin base de datos, sin credenciales propias.
+AI image generation and editing studio built on the Gemini API (Nano Banana).
+Pure frontend: no backend, no database, no credentials of its own.
 
-## Cómo funciona
+## How it works
 
-Tres vistas: **Inicio**, **Estudio** y **Galería**.
+Three views: **Home**, **Studio** and **Gallery**.
 
-El estudio junta todas las herramientas en un solo lugar (Crear, Editar,
-Mockup, Producto y Lote). Cada herramienta tiene sus propias imágenes de
-entrada, así no se mezclan entre sí. El resultado queda en el centro con:
+The studio puts every tool in one place (Create, Edit, Mockup, Product and
+Bulk). Each tool keeps its own input images, so they never mix. The result
+stays in the center with:
 
-- Descargar, "Editar esta imagen" y "Usar en…" para mandarlo a otra herramienta.
-- Antes / después cuando hay una foto base.
-- Variantes: de 1 a 4 imágenes por pedido.
-- Cancelar de verdad (corta el pedido y no guarda el resultado).
+- Download, "Edit this image" and "Use in…" to send it to another tool.
+- Before / after when there's a base photo.
+- Variations: 1 to 4 images per request.
+- Real cancel (stops the request and doesn't save the result).
 
-Las imágenes se pueden subir, arrastrar, pegar con Cmd/Ctrl+V, traer desde un
-link o elegir de la galería. Cmd/Ctrl+Enter genera.
+Images can be uploaded, dropped, pasted with Cmd/Ctrl+V, fetched from a link
+or picked from the gallery. Cmd/Ctrl+Enter generates.
 
-## Estructura
+In **Create**, uploaded images are numbered (Image 1, Image 2…) so the prompt
+can refer to them: "put the person from image 1 on the beach from image 2".
 
-| Archivo | Qué hace |
+## Structure
+
+| File | What it does |
 |---|---|
-| `src/lib/tools.ts` | Definición de cada herramienta: imágenes que pide, instrucciones fijas, carpeta |
-| `src/lib/generate.ts` | Pedidos a Gemini, cancelación, mensajes de error en castellano |
-| `src/lib/settings.ts` | Key, nombre y preferencias guardadas en el navegador |
-| `src/lib/gallery.ts` | Galería en IndexedDB, export a .zip, deshacer borrado |
-| `src/lib/galleryContext.tsx` | Estado compartido de la galería |
-| `src/components/studio/` | Estudio: panel de controles, resultado, slots de imagen |
-| `src/components/gallery/` | Galería, visor de imágenes y selector |
-| `src/components/ui/` | Botones, avisos (toasts) y diálogos |
+| `src/lib/tools.ts` | Each tool: the images it asks for, default prompts, target folder |
+| `src/lib/generate.ts` | Gemini requests, cancellation, readable error messages |
+| `src/lib/settings.ts` | Key, name and preferences stored in the browser |
+| `src/lib/models.ts` | Available models and their options |
+| `src/lib/gallery.ts` | IndexedDB gallery, .zip export, undo delete |
+| `src/lib/galleryContext.tsx` | Shared gallery state |
+| `src/components/studio/` | Studio: controls panel, result, image slots |
+| `src/components/gallery/` | Gallery, image viewer and picker |
+| `src/components/ui/` | Buttons, toasts and dialogs |
 
-## Seguridad
+## Security
 
-La app es **BYOK** (bring your own key). No incluye ni requiere una API key:
-cada usuario ingresa la suya y queda en el `localStorage` de su navegador.
+The app is **BYOK** (bring your own key). It doesn't ship or require an API
+key: each user enters their own and it stays in their browser's `localStorage`.
 
-`vite.config.ts` **no debe** volver a tener un bloque `define` que inyecte
-`GEMINI_API_KEY` o `API_KEY`. Vite reemplaza eso en tiempo de build y la key
-termina en texto plano dentro del JS público del sitio.
+`vite.config.ts` **must not** get a `define` block that injects
+`GEMINI_API_KEY` or `API_KEY` again. Vite replaces that at build time and the
+key ends up in plain text inside the site's public JS.
 
 ```bash
-npm run check:secrets   # correr antes de cada deploy
+npm run check:secrets   # run before every deploy
 ```
 
-## Galería
+## Gallery
 
-Vive en **IndexedDB**, en el navegador de cada usuario. Consecuencias:
+Lives in **IndexedDB**, in each user's browser. That means:
 
-- Cada persona ve solamente sus propias imágenes.
-- No viaja nada a ningún servidor.
-- Es por navegador, por dispositivo y por dirección: `localhost` y
-  `detolab-five.vercel.app` tienen galerías separadas.
-- Si borrás los datos del sitio, se va. Por eso está "Descargar todo (.zip)".
+- Each person only sees their own images.
+- Nothing is sent to any server.
+- It's per browser, per device and per address: `localhost` and
+  `detolab-five.vercel.app` have separate galleries.
+- Clearing the site's data deletes it. That's why "Download all (.zip)" exists.
 
-Las imágenes se guardan como Blob, no como base64. Un PNG en 4K pesa bastante
-y base64 le suma ~33% encima.
+Images are stored as Blobs, not base64. A 4K PNG is heavy and base64 adds
+~33% on top.
 
-La app pide `navigator.storage.persist()` al arrancar para que el navegador no
-desaloje la galería cuando le falte espacio.
+The app calls `navigator.storage.persist()` on startup so the browser doesn't
+evict the gallery when it runs low on space.
 
-## Modelos
+## Models
 
-En la interfaz se eligen por calidad, no por nombre:
+| Model              | Model ID                      |
+|--------------------|-------------------------------|
+| Nano Banana Pro    | `gemini-3-pro-image`          |
+| Nano Banana 2      | `gemini-3.1-flash-image`      |
+| Nano Banana 2 Lite | `gemini-3.1-flash-lite-image` |
+| Nano Banana (legacy) | `gemini-2.5-flash-image`    |
+| Text (improve prompt) | `gemini-3.6-flash`         |
 
-| Calidad     | Model ID                      |
-|-------------|-------------------------------|
-| Rápido      | `gemini-3.1-flash-lite-image` |
-| Equilibrado | `gemini-3.1-flash-image`      |
-| Máxima      | `gemini-3-pro-image`          |
-| Texto (mejorar prompt) | `gemini-3.6-flash` |
+All in `src/lib/models.ts`. To update a model, only touch that file.
 
-Todo en `src/lib/models.ts`. Para actualizar un modelo se toca ese archivo solo.
+## "Original photo" aspect ratio
 
-## Formato "Igual a la foto"
+Measures the base image you upload, requests the generation in the closest
+supported ratio, and crops the result to the exact pixels of the original. The
+download has the same size as what you uploaded. See `src/lib/originalFormat.ts`.
 
-Mide la imagen base que subís, pide la generación en el ratio soportado más
-cercano, y recorta el resultado a los píxeles exactos del original. Lo que baja
-tiene el mismo tamaño que lo que subiste. Ver `src/lib/originalFormat.ts`.
-
-## Correr local
+## Run locally
 
 ```bash
 npm install
@@ -89,11 +92,11 @@ npm run dev
 
 ## Deploy
 
-Vercel detecta el `vercel.json` incluido. Build `vite build`, output `dist`.
-No hay variables de entorno que configurar.
+Vercel picks up the included `vercel.json`. Build `vite build`, output `dist`.
+No environment variables to configure.
 
-Con el repo conectado a Vercel, cada push a `main` deploya solo:
+With the repo connected to Vercel, every push to `main` deploys automatically:
 
 ```bash
-npm run ship "lo que cambié"
+npm run ship "what I changed"
 ```

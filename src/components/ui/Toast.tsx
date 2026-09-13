@@ -61,8 +61,8 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               exit={{ opacity: 0, y: 12 }}
               role={t.tone === 'error' ? 'alert' : 'status'}
               className={cn(
-                'pointer-events-auto w-full lg:w-auto lg:max-w-md flex items-start gap-3 rounded-xl border px-4 py-3 text-[13px] leading-snug shadow-2xl backdrop-blur-xl',
-                t.tone === 'error' ? 'bg-[#1d1414]/95 border-red-500/20' : 'bg-raised/95 border-line'
+                'pointer-events-auto w-full lg:w-auto lg:max-w-md flex items-start gap-3 rounded-2xl border px-4 py-3 text-[14px] leading-snug shadow-2xl backdrop-blur-2xl backdrop-saturate-150',
+                t.tone === 'error' ? 'bg-[#2c1a1a]/90 border-red-500/20' : 'bg-[#2c2c2e]/85 border-white/10'
               )}
             >
               <span className="mt-0.5 shrink-0">{ICONS[t.tone ?? 'info']}</span>
@@ -78,7 +78,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                   {t.action.label}
                 </button>
               )}
-              <button onClick={() => dismiss(t.id)} aria-label="Cerrar" className="shrink-0 text-faint hover:text-ink">
+              <button onClick={() => dismiss(t.id)} aria-label="Close" className="shrink-0 text-faint hover:text-ink">
                 <X className="w-4 h-4" />
               </button>
             </motion.div>

@@ -50,23 +50,23 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ imageId, ids, onClose,
     else onClose();
     try {
       await remove(id);
-      toast({ message: 'Imagen borrada.', action: { label: 'Deshacer', onClick: () => restore(id) } });
+      toast({ message: 'Image deleted.', action: { label: 'Undo', onClick: () => restore(id) } });
     } catch {
-      toast({ message: 'No se pudo borrar la imagen.', tone: 'error' });
+      toast({ message: "Couldn't delete the image.", tone: 'error' });
     }
   };
 
   const copyPrompt = async () => {
     try {
       await navigator.clipboard.writeText(img.prompt);
-      toast({ message: 'Prompt copiado.', tone: 'success' });
+      toast({ message: 'Prompt copied.', tone: 'success' });
     } catch {
-      toast({ message: 'No se pudo copiar.', tone: 'error' });
+      toast({ message: "Couldn't copy.", tone: 'error' });
     }
   };
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Imagen" className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-sm flex flex-col lg:flex-row">
+    <div role="dialog" aria-modal="true" aria-label="Image" className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-sm flex flex-col lg:flex-row">
       <div
         className="relative flex-1 min-h-0 flex items-center justify-center p-4 lg:p-12"
         onClick={(e) => e.target === e.currentTarget && onClose()}
@@ -83,7 +83,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ imageId, ids, onClose,
 
         <button
           onClick={onClose}
-          aria-label="Cerrar"
+          aria-label="Close"
           className="absolute top-3 right-3 lg:top-5 lg:right-5 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 grid place-items-center"
         >
           <X className="w-5 h-5" />
@@ -91,7 +91,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ imageId, ids, onClose,
         {prevId && (
           <button
             onClick={() => onNavigate(prevId)}
-            aria-label="Anterior"
+            aria-label="Previous"
             className="absolute left-2 lg:left-5 top-1/2 -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-white/10 hover:bg-white/20 grid place-items-center"
           >
             <ChevronLeft className="w-6 h-6" />
@@ -100,7 +100,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ imageId, ids, onClose,
         {nextId && (
           <button
             onClick={() => onNavigate(nextId)}
-            aria-label="Siguiente"
+            aria-label="Next"
             className="absolute right-2 lg:right-5 top-1/2 -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-white/10 hover:bg-white/20 grid place-items-center"
           >
             <ChevronRight className="w-6 h-6" />
@@ -110,21 +110,21 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ imageId, ids, onClose,
 
       <aside className="lg:w-[340px] shrink-0 max-h-[46dvh] lg:max-h-none overflow-y-auto custom-scrollbar border-t lg:border-t-0 lg:border-l border-line bg-panel p-5 space-y-6">
         <div className="flex items-center justify-between text-[12px] text-faint tabular-nums">
-          <span>{new Date(img.createdAt).toLocaleString('es-AR', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+          <span>{new Date(img.createdAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</span>
           {liveIds.length > 1 && (
             <span>
-              {index + 1} de {liveIds.length}
+              {index + 1} of {liveIds.length}
             </span>
           )}
         </div>
 
-        <Button variant="primary" className="w-full" onClick={() => downloadUrl(img.url, downloadName('imagen', img.id))}>
+        <Button variant="primary" className="w-full" onClick={() => downloadUrl(img.url, downloadName('image', img.id))}>
           <Download className="w-4 h-4" />
-          Descargar
+          Download
         </Button>
 
         <div>
-          <Label>Usar en el estudio</Label>
+          <Label>Use in studio</Label>
           <div className="grid gap-1.5">
             {USE_AS.map((u) => (
               <Button key={u.label} size="sm" className="justify-start h-9" onClick={() => onUseAs(img.url, u.tool, u.slot)}>
@@ -135,12 +135,12 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ imageId, ids, onClose,
         </div>
 
         <div>
-          <Label>Carpeta</Label>
+          <Label>Folder</Label>
           <Select
-            aria-label="Carpeta"
+            aria-label="Folder"
             value={img.folderId}
             onChange={(e) => move(img.id, e.target.value)}
-            options={folders.map((f) => ({ value: f.id, label: f.id === 'all' ? 'Sin carpeta' : folderName(f) }))}
+            options={folders.map((f) => ({ value: f.id, label: f.id === 'all' ? 'No folder' : folderName(f) }))}
           />
         </div>
 
@@ -149,7 +149,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ imageId, ids, onClose,
             <span className="text-[13px] font-medium">Prompt</span>
             <button onClick={copyPrompt} className="inline-flex items-center gap-1.5 text-[12px] text-muted hover:text-ink">
               <Copy className="w-3.5 h-3.5" />
-              Copiar
+              Copy
             </button>
           </div>
           <p className="text-[14px] text-muted leading-relaxed whitespace-pre-wrap break-words">{img.prompt}</p>
@@ -157,7 +157,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ imageId, ids, onClose,
 
         <Button variant="ghost" className="w-full text-red-300 hover:text-red-200 hover:bg-red-500/10" onClick={handleDelete}>
           <Trash2 className="w-4 h-4" />
-          Borrar imagen
+          Delete image
         </Button>
       </aside>
     </div>

@@ -11,17 +11,18 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
 }
 
+// Botones cápsula, como en Apple TV
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary: 'bg-white text-black hover:bg-white/90 disabled:bg-white/20 disabled:text-white/40',
-  secondary: 'bg-white/[0.06] text-ink border border-line hover:bg-white/[0.1] disabled:opacity-40',
-  ghost: 'text-muted hover:text-ink hover:bg-white/[0.06] disabled:opacity-40',
-  danger: 'bg-red-500/90 text-white hover:bg-red-500 disabled:opacity-40',
+  primary: 'bg-white text-black hover:bg-white/90 active:bg-white/80 disabled:bg-white/20 disabled:text-white/40',
+  secondary: 'bg-white/[0.12] text-ink hover:bg-white/[0.18] active:bg-white/[0.24] backdrop-blur-xl disabled:opacity-40',
+  ghost: 'text-ink/80 hover:text-ink hover:bg-white/[0.08] disabled:opacity-40',
+  danger: 'bg-[#ff453a] text-white hover:bg-[#ff5b51] disabled:opacity-40',
 };
 
 const SIZES: Record<ButtonSize, string> = {
-  sm: 'h-8 px-3 text-[13px] gap-1.5 rounded-lg',
-  md: 'h-10 px-4 text-[14px] gap-2 rounded-xl',
-  lg: 'h-12 px-5 text-[15px] gap-2 rounded-xl',
+  sm: 'h-8 px-3.5 text-[13px] gap-1.5',
+  md: 'h-10 px-4.5 text-[14px] gap-2',
+  lg: 'h-12 px-6 text-[15px] gap-2',
 };
 
 export const Button: React.FC<ButtonProps> = ({
@@ -37,7 +38,7 @@ export const Button: React.FC<ButtonProps> = ({
     {...props}
     disabled={disabled || loading}
     className={cn(
-      'inline-flex items-center justify-center font-medium whitespace-nowrap transition-colors disabled:cursor-not-allowed',
+      'inline-flex items-center justify-center rounded-full font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed',
       VARIANTS[variant],
       SIZES[size],
       className
@@ -55,10 +56,10 @@ export const Label: React.FC<{ children: React.ReactNode; hint?: React.ReactNode
   htmlFor,
 }) => (
   <div className={cn('flex items-baseline justify-between gap-3 mb-2', className)}>
-    <label htmlFor={htmlFor} className="text-[13px] font-medium text-ink">
+    <label htmlFor={htmlFor} className="text-[13px] font-semibold text-ink">
       {children}
     </label>
-    {hint && <span className="text-[12px] text-faint">{hint}</span>}
+    {hint && <span className="text-[12px] text-faint truncate">{hint}</span>}
   </div>
 );
 
@@ -70,8 +71,9 @@ interface SegmentedProps<T extends string | number> {
   ariaLabel?: string;
 }
 
+/** Control segmentado estilo iOS. */
 export const Segmented = <T extends string | number>({ value, onChange, options, className, ariaLabel }: SegmentedProps<T>) => (
-  <div role="radiogroup" aria-label={ariaLabel} className={cn('flex p-1 gap-1 rounded-xl bg-white/[0.04] border border-line', className)}>
+  <div role="radiogroup" aria-label={ariaLabel} className={cn('flex p-0.5 gap-0.5 rounded-[10px] bg-fill', className)}>
     {options.map((o) => (
       <button
         key={String(o.value)}
@@ -82,8 +84,8 @@ export const Segmented = <T extends string | number>({ value, onChange, options,
         disabled={o.disabled}
         onClick={() => onChange(o.value)}
         className={cn(
-          'flex-1 min-w-0 h-8 px-2 rounded-lg text-[13px] font-medium transition-colors truncate disabled:opacity-30',
-          o.value === value ? 'bg-white text-black' : 'text-muted hover:text-ink hover:bg-white/[0.06]'
+          'flex-1 min-w-0 h-8 px-2 rounded-[8px] text-[13px] font-semibold transition-all truncate disabled:opacity-30',
+          o.value === value ? 'bg-[#636366] text-white shadow-[0_3px_8px_rgba(0,0,0,0.25)]' : 'text-ink/80 hover:text-ink'
         )}
       >
         {o.label}
@@ -100,10 +102,10 @@ export const Select: React.FC<SelectProps> = ({ options, className, ...props }) 
   <div className={cn('relative', className)}>
     <select
       {...props}
-      className="w-full h-10 appearance-none rounded-xl bg-white/[0.04] border border-line pl-3 pr-9 text-[14px] text-ink outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+      className="w-full h-10 appearance-none rounded-[10px] bg-fill pl-3 pr-9 text-[14px] text-ink outline-none focus-visible:ring-2 focus-visible:ring-white/30"
     >
       {options.map((o) => (
-        <option key={o.value} value={o.value} className="bg-panel">
+        <option key={o.value} value={o.value} className="bg-raised">
           {o.label}
         </option>
       ))}
@@ -112,6 +114,7 @@ export const Select: React.FC<SelectProps> = ({ options, className, ...props }) 
   </div>
 );
 
+/** Interruptor estilo iOS. */
 export const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void; label: React.ReactNode; hint?: React.ReactNode; disabled?: boolean }> = ({
   checked,
   onChange,
@@ -125,14 +128,19 @@ export const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void
     aria-checked={checked}
     disabled={disabled}
     onClick={() => onChange(!checked)}
-    className="w-full flex items-start justify-between gap-4 text-left disabled:opacity-40"
+    className="w-full flex items-center justify-between gap-4 text-left disabled:opacity-40"
   >
     <span>
-      <span className="block text-[13px] font-medium text-ink">{label}</span>
+      <span className="block text-[14px] font-semibold text-ink">{label}</span>
       {hint && <span className="block text-[12px] text-faint mt-0.5 leading-snug">{hint}</span>}
     </span>
-    <span className={cn('mt-0.5 shrink-0 w-9 h-5 rounded-full p-0.5 transition-colors', checked ? 'bg-white' : 'bg-white/15')}>
-      <span className={cn('block w-4 h-4 rounded-full transition-transform', checked ? 'translate-x-4 bg-black' : 'bg-white/70')} />
+    <span className={cn('shrink-0 w-[46px] h-7 rounded-full p-0.5 transition-colors', checked ? 'bg-[#30d158]' : 'bg-fill')}>
+      <span
+        className={cn(
+          'block w-6 h-6 rounded-full bg-white shadow-[0_3px_8px_rgba(0,0,0,0.3)] transition-transform',
+          checked && 'translate-x-[18px]'
+        )}
+      />
     </span>
   </button>
 );
@@ -176,7 +184,7 @@ export const Menu: React.FC<{ trigger: (open: boolean) => React.ReactNode; items
         <div
           role="menu"
           className={cn(
-            'absolute z-50 min-w-[220px] p-1 rounded-xl bg-raised border border-line shadow-2xl',
+            'absolute z-50 min-w-[220px] p-1.5 rounded-[14px] bg-[#2c2c2e]/90 backdrop-blur-2xl backdrop-saturate-150 border border-white/10 shadow-2xl',
             align === 'right' ? 'right-0' : 'left-0',
             side === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'
           )}
@@ -190,8 +198,8 @@ export const Menu: React.FC<{ trigger: (open: boolean) => React.ReactNode; items
                 item.onClick();
               }}
               className={cn(
-                'w-full flex items-center gap-2.5 px-3 h-10 rounded-lg text-[14px] text-left transition-colors',
-                item.danger ? 'text-red-400 hover:bg-red-500/10' : 'text-ink hover:bg-white/[0.06]'
+                'w-full flex items-center gap-2.5 px-3 h-10 rounded-[8px] text-[14px] text-left transition-colors',
+                item.danger ? 'text-[#ff453a] hover:bg-white/[0.08]' : 'text-ink hover:bg-white/[0.1]'
               )}
             >
               {item.icon && <span className="text-muted">{item.icon}</span>}
@@ -208,7 +216,7 @@ export const Menu: React.FC<{ trigger: (open: boolean) => React.ReactNode; items
 export const CoverImage: React.FC<{ src: string; alt: string; className?: string }> = ({ src, alt, className }) => {
   const [failed, setFailed] = useState(false);
   if (failed) {
-    return <div aria-hidden className={cn('bg-gradient-to-br from-[#2a2a2a] via-[#1a1a1a] to-[#0f0f0f]', className)} />;
+    return <div aria-hidden className={cn('bg-gradient-to-br from-[#3a3a3c] via-[#1c1c1e] to-black', className)} />;
   }
   return <img src={src} alt={alt} onError={() => setFailed(true)} referrerPolicy="no-referrer" className={className} />;
 };

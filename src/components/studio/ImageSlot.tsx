@@ -80,12 +80,12 @@ export const ImageSlot: React.FC<ImageSlotProps> = ({
       onPointerDown={onActivate}
       onFocusCapture={onActivate}
       className={cn(
-        'rounded-2xl border p-3 transition-colors',
-        dragging ? 'border-white bg-white/[0.08]' : active ? 'border-white/25 bg-white/[0.04]' : 'border-line bg-white/[0.02]'
+        'rounded-2xl p-3 ring-1 transition',
+        dragging ? 'ring-white bg-white/[0.1]' : active ? 'ring-white/20 bg-fill-soft' : 'ring-transparent bg-fill-soft'
       )}
     >
       <div className="flex items-baseline justify-between gap-3 px-0.5 mb-2.5">
-        <p className="text-[13px] font-medium text-ink shrink-0">
+        <p className="text-[13px] font-semibold text-ink shrink-0">
           {spec.label}
           {spec.required && <span className="ml-0.5 text-faint">*</span>}
         </p>
@@ -103,9 +103,9 @@ export const ImageSlot: React.FC<ImageSlotProps> = ({
         >
           {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
           <span className="text-[13px]">
-            {loading ? 'Cargando…' : dragging ? 'Soltala acá' : single ? 'Subí o arrastrá una imagen' : 'Subí o arrastrá imágenes'}
+            {loading ? 'Loading…' : dragging ? 'Drop it here' : single ? 'Upload or drop an image' : 'Upload or drop images'}
           </span>
-          {active && !loading && <span className="hidden lg:block text-[11px] text-faint">o pegala con {pasteHint}</span>}
+          {active && !loading && <span className="hidden lg:block text-[11px] text-faint">or paste with {pasteHint}</span>}
         </button>
       ) : (
         <div
@@ -115,17 +115,22 @@ export const ImageSlot: React.FC<ImageSlotProps> = ({
             images.length > 8 && 'max-h-60 overflow-y-auto custom-scrollbar pr-1'
           )}
         >
-          {images.map((img) => (
+          {images.map((img, i) => (
             <div key={img.id} className={cn('relative rounded-lg overflow-hidden bg-black/30', single ? 'h-36' : 'aspect-square')}>
               <img
                 src={img.preview}
-                alt={spec.label}
+                alt={spec.numbered ? `Image ${i + 1}` : spec.label}
                 className={cn('w-full h-full', single ? 'object-contain' : 'object-cover')}
               />
+              {spec.numbered && (
+                <span className="absolute bottom-1.5 left-1.5 min-w-5 h-5 px-1 rounded-md bg-black/75 text-[11px] font-semibold grid place-items-center tabular-nums">
+                  {i + 1}
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => onRemove(img.id)}
-                aria-label="Quitar imagen"
+                aria-label="Remove image"
                 className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-black/70 backdrop-blur grid place-items-center text-white/90 hover:bg-black"
               >
                 <X className="w-3.5 h-3.5" />
@@ -141,7 +146,7 @@ export const ImageSlot: React.FC<ImageSlotProps> = ({
             <button
               type="button"
               onClick={openFiles}
-              aria-label="Agregar imagen"
+              aria-label="Add image"
               className="aspect-square rounded-lg border border-dashed border-white/15 hover:border-white/35 grid place-items-center text-muted hover:text-ink"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-5 h-5" />}
@@ -153,7 +158,7 @@ export const ImageSlot: React.FC<ImageSlotProps> = ({
       <div className="mt-2 flex items-center gap-1 -mx-1">
         <SmallAction onClick={onPickFromGallery}>
           <Images />
-          Galería
+          Gallery
         </SmallAction>
         <SmallAction onClick={() => setLinkOpen((o) => !o)} aria-expanded={linkOpen}>
           <Link2 />
@@ -162,12 +167,12 @@ export const ImageSlot: React.FC<ImageSlotProps> = ({
         {!isEmpty && single && (
           <SmallAction onClick={openFiles}>
             <Upload />
-            Cambiar
+            Replace
           </SmallAction>
         )}
         {images.length > 1 && (
           <SmallAction className="ml-auto" onClick={onClear}>
-            Quitar todas
+            Clear all
           </SmallAction>
         )}
       </div>
@@ -193,7 +198,7 @@ export const ImageSlot: React.FC<ImageSlotProps> = ({
             className="input h-9 text-[13px]"
           />
           <Button type="submit" size="sm" variant="primary" className="h-9" disabled={!link.trim() || loading}>
-            Agregar
+            Add
           </Button>
         </form>
       )}

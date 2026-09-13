@@ -1,8 +1,8 @@
 {
   "name": "Detolab",
   "short_name": "Detolab",
-  "description": "Estudio de imágenes con IA",
-  "lang": "es",
+  "description": "AI image studio",
+  "lang": "en",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",

@@ -4,7 +4,7 @@ import { Modal, useDialog } from './ui/Dialog';
 import { Button, Label } from './ui/controls';
 import { useToast } from './ui/Toast';
 import { getApiKey, setApiKey, setUserName } from '../lib/settings';
-import { friendlyError, validateApiKey } from '../lib/generate';
+import { friendlyError, isInvalidKeyError, validateApiKey } from '../lib/generate';
 
 interface SettingsDialogProps {
   open: boolean;
@@ -43,7 +43,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onClose, u
   const saveKey = async () => {
     const k = newKey.trim();
     if (k.length < 10) {
-      setError('Esa key parece incompleta.');
+      setError('That key looks incomplete.');
       return;
     }
     setSaving(true);
@@ -53,10 +53,9 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onClose, u
       setApiKey(k);
       setEditingKey(false);
       setNewKey('');
-      toast({ message: 'API key actualizada.', tone: 'success' });
+      toast({ message: 'API key updated.', tone: 'success' });
     } catch (err) {
-      const raw = err instanceof Error ? err.message : '';
-      setError(/API key not valid|API_KEY_INVALID/i.test(raw) ? 'Esa key no es válida. Revisá que esté completa.' : friendlyError(err));
+      setError(isInvalidKeyError(err) ? "That key isn't valid. Make sure you copied all of it." : friendlyError(err));
     } finally {
       setSaving(false);
     }
@@ -64,9 +63,9 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onClose, u
 
   const logout = async () => {
     const ok = await confirm({
-      title: 'Cerrar sesión',
-      message: 'Se borra tu API key de este navegador. Tus imágenes quedan guardadas acá.',
-      confirmLabel: 'Cerrar sesión',
+      title: 'Sign out',
+      message: 'Your API key will be removed from this browser. Your images stay saved here.',
+      confirmLabel: 'Sign out',
       danger: true,
     });
     if (!ok) return;
@@ -82,30 +81,30 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onClose, u
         saveName();
         onClose();
       }}
-      title="Ajustes"
+      title="Settings"
     >
       <div className="space-y-6">
         <div>
-          <Label htmlFor="settings-name">Tu nombre</Label>
+          <Label htmlFor="settings-name">Your name</Label>
           <input
             id="settings-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             onBlur={saveName}
             onKeyDown={(e) => e.key === 'Enter' && saveName()}
-            placeholder="Cómo querés que te saludemos"
+            placeholder="What should we call you?"
             className="input"
           />
         </div>
 
         <div>
-          <Label>API key de Gemini</Label>
+          <Label>Gemini API key</Label>
           {!editingKey ? (
             <div className="flex items-center gap-2">
-              <code className="flex-1 h-11 px-3.5 rounded-xl bg-white/[0.04] border border-line flex items-center font-sans text-[14px] text-muted tracking-wider">
-                {currentKey ? `••••••••${currentKey.slice(-4)}` : 'Sin key'}
+              <code className="flex-1 h-11 px-3.5 rounded-[10px] bg-fill flex items-center font-sans text-[14px] text-muted tracking-wider">
+                {currentKey ? `••••••••${currentKey.slice(-4)}` : 'No key'}
               </code>
-              <Button onClick={() => setEditingKey(true)}>Cambiar</Button>
+              <Button onClick={() => setEditingKey(true)}>Change</Button>
             </div>
           ) : (
             <form
@@ -121,7 +120,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onClose, u
                   type={showKey ? 'text' : 'password'}
                   value={newKey}
                   onChange={(e) => setNewKey(e.target.value)}
-                  placeholder="Pegá tu nueva key"
+                  placeholder="Paste your new key"
                   autoComplete="off"
                   spellCheck={false}
                   className="input pr-11"
@@ -129,7 +128,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onClose, u
                 <button
                   type="button"
                   onClick={() => setShowKey((s) => !s)}
-                  aria-label={showKey ? 'Ocultar key' : 'Mostrar key'}
+                  aria-label={showKey ? 'Hide key' : 'Show key'}
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-faint hover:text-ink"
                 >
                   {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -145,23 +144,23 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onClose, u
                     setError(null);
                   }}
                 >
-                  Cancelar
+                  Cancel
                 </Button>
                 <Button type="submit" variant="primary" loading={saving}>
-                  Validar y guardar
+                  Validate & save
                 </Button>
               </div>
             </form>
           )}
           <p className="mt-2 text-[12px] text-faint leading-relaxed">
-            Se guarda solo en este navegador y viaja directo a Google.{' '}
+            Stored only in this browser and sent directly to Google.{' '}
             <a
               href="https://aistudio.google.com/app/apikey"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-muted underline underline-offset-2 hover:text-ink"
             >
-              Conseguir una key
+              Get a key
               <ExternalLink className="w-3 h-3" />
             </a>
           </p>
@@ -170,7 +169,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onClose, u
         <div className="pt-5 border-t border-line">
           <Button variant="ghost" className="w-full text-red-300 hover:text-red-200 hover:bg-red-500/10" onClick={logout}>
             <LogOut className="w-4 h-4" />
-            Cerrar sesión
+            Sign out
           </Button>
         </div>
       </div>

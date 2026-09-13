@@ -37,22 +37,22 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ onOpenImage, onGoToStu
   const current = folders.find((f) => f.id === folderId);
 
   const newFolder = async () => {
-    const name = await prompt({ title: 'Nueva carpeta', label: 'Nombre', placeholder: 'Ej: Campaña otoño', confirmLabel: 'Crear' });
+    const name = await prompt({ title: 'New folder', label: 'Name', placeholder: 'e.g. Fall campaign', confirmLabel: 'Create' });
     if (!name) return;
     try {
       const folder = await createFolder(name);
       setFolderId(folder.id);
     } catch {
-      toast({ message: 'No se pudo crear la carpeta.', tone: 'error' });
+      toast({ message: "Couldn't create the folder.", tone: 'error' });
     }
   };
 
   const removeFolder = async () => {
     if (!current || current.isDefault) return;
     const ok = await confirm({
-      title: 'Borrar carpeta',
-      message: `Se borra la carpeta “${current.name}”. Las imágenes no se borran: quedan en Todas.`,
-      confirmLabel: 'Borrar carpeta',
+      title: 'Delete folder',
+      message: `The folder “${current.name}” will be deleted. Its images won't: they stay in All.`,
+      confirmLabel: 'Delete folder',
       danger: true,
     });
     if (!ok) return;
@@ -64,26 +64,26 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ onOpenImage, onGoToStu
     setZipping(true);
     try {
       const n = await exportZip(filtered.map((i) => i.id));
-      if (!n) toast({ message: 'No hay imágenes para descargar.' });
+      if (!n) toast({ message: 'No images to download.' });
     } catch {
-      toast({ message: 'No se pudo armar el .zip.', tone: 'error' });
+      toast({ message: "Couldn't build the .zip.", tone: 'error' });
     } finally {
       setZipping(false);
     }
   };
 
   return (
-    <div className="px-4 py-6 lg:px-10 lg:py-10">
+    <div className="max-w-[1600px] mx-auto px-4 py-6 lg:px-10 lg:py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-5xl lg:text-6xl tracking-tight leading-none">Galería</h1>
+          <h1 className="text-4xl lg:text-5xl font-bold tracking-tight leading-none">Gallery</h1>
           <p className="mt-3 text-[15px] text-muted">
-            {images.length} {images.length === 1 ? 'imagen guardada' : 'imágenes guardadas'} en este navegador
+            {images.length} {images.length === 1 ? 'image' : 'images'} saved in this browser
           </p>
         </div>
         <Button onClick={download} loading={zipping} disabled={!filtered.length}>
           {!zipping && <Download className="w-4 h-4" />}
-          {filtered.length === images.length ? 'Descargar todo' : `Descargar ${filtered.length}`} (.zip)
+          {filtered.length === images.length ? 'Download all' : `Download ${filtered.length}`} (.zip)
         </Button>
       </div>
 
@@ -94,8 +94,8 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ onOpenImage, onGoToStu
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por prompt"
-            aria-label="Buscar por prompt"
+            placeholder="Search by prompt"
+            aria-label="Search by prompt"
             className="input pl-9"
           />
         </div>
@@ -106,8 +106,8 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ onOpenImage, onGoToStu
               onClick={() => setFolderId(f.id)}
               aria-pressed={f.id === folderId}
               className={cn(
-                'h-9 px-3.5 rounded-full text-[13px] font-medium whitespace-nowrap border transition-colors',
-                f.id === folderId ? 'bg-white text-black border-white' : 'border-line text-muted hover:text-ink hover:bg-white/[0.04]'
+                'h-9 px-4 rounded-full text-[13px] font-semibold whitespace-nowrap transition-colors',
+                f.id === folderId ? 'bg-white text-black' : 'bg-white/[0.1] text-ink hover:bg-white/[0.16]'
               )}
             >
               {folderName(f)}
@@ -116,31 +116,36 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ onOpenImage, onGoToStu
           ))}
           <button
             onClick={newFolder}
-            className="h-9 px-3.5 rounded-full text-[13px] whitespace-nowrap border border-dashed border-white/15 text-muted hover:text-ink inline-flex items-center gap-1.5"
+            className="h-9 px-3.5 rounded-full text-[13px] whitespace-nowrap bg-white/[0.06] text-muted hover:text-ink inline-flex items-center gap-1.5"
           >
             <FolderPlus className="w-4 h-4" />
-            Carpeta
+            Folder
           </button>
         </div>
         {current && !current.isDefault && (
-          <Button size="sm" variant="ghost" className="lg:ml-auto self-start lg:self-auto text-red-300 hover:text-red-200 hover:bg-red-500/10" onClick={removeFolder}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="lg:ml-auto self-start lg:self-auto text-red-300 hover:text-red-200 hover:bg-red-500/10"
+            onClick={removeFolder}
+          >
             <Trash2 className="w-4 h-4" />
-            Borrar carpeta
+            Delete folder
           </Button>
         )}
       </div>
 
       {!ready ? null : images.length === 0 ? (
-        <div className="mt-10 rounded-2xl border border-dashed border-line py-20 px-6 text-center">
-          <p className="font-display text-4xl leading-none">Tu galería está vacía</p>
-          <p className="mt-3 text-[14px] text-muted">Todo lo que generes se guarda acá automáticamente.</p>
+        <div className="mt-10 rounded-3xl bg-raised py-20 px-6 text-center">
+          <p className="text-3xl font-bold tracking-tight leading-none">Your gallery is empty</p>
+          <p className="mt-3 text-[14px] text-muted">Everything you generate is saved here automatically.</p>
           <Button variant="primary" className="mt-6" onClick={onGoToStudio}>
             <Sparkles className="w-4 h-4" />
-            Ir al estudio
+            Go to studio
           </Button>
         </div>
       ) : filtered.length === 0 ? (
-        <p className="mt-10 py-16 text-center text-[14px] text-muted">No hay imágenes que coincidan.</p>
+        <p className="mt-10 py-16 text-center text-[14px] text-muted">No images match.</p>
       ) : (
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 lg:gap-3">
           {filtered.map((img) => (
@@ -148,13 +153,13 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ onOpenImage, onGoToStu
               key={img.id}
               onClick={() => onOpenImage(img.id, filtered.map((i) => i.id))}
               title={img.prompt}
-              className="group aspect-square rounded-xl overflow-hidden bg-white/[0.03]"
+              className="relative aspect-square rounded-xl overflow-hidden bg-raised transition-[transform,box-shadow] duration-300 ease-out hover:z-10 hover:scale-[1.04] hover:shadow-[0_24px_48px_rgba(0,0,0,0.65)]"
             >
               <img
                 src={img.url}
                 alt={img.prompt}
                 loading="lazy"
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                className="w-full h-full object-cover"
               />
             </button>
           ))}
@@ -163,8 +168,8 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ onOpenImage, onGoToStu
 
       {storage && (
         <p className="mt-10 max-w-2xl text-[12px] text-faint leading-relaxed">
-          Ocupa {formatBytes(storage.usedBytes)} en este navegador. Cada dirección (por ejemplo localhost o
-          detolab-five.vercel.app) tiene su propia galería, y si borrás los datos del sitio se pierde: descargá lo importante.
+          Uses {formatBytes(storage.usedBytes)} in this browser. Each address (e.g. localhost or detolab-five.vercel.app)
+          has its own gallery, and clearing the site's data deletes it: download anything important.
         </p>
       )}
     </div>

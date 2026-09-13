@@ -13,9 +13,9 @@ export const GalleryPicker: React.FC<GalleryPickerProps> = ({ open, onClose, onP
   const { images } = useGallery();
 
   return (
-    <Modal open={open} onClose={onClose} title="Elegir de la galería" className="sm:max-w-2xl">
+    <Modal open={open} onClose={onClose} title="Choose from gallery" className="sm:max-w-2xl">
       {images.length === 0 ? (
-        <p className="py-12 text-center text-[14px] text-muted">Todavía no hay imágenes en tu galería.</p>
+        <p className="py-12 text-center text-[14px] text-muted">No images in your gallery yet.</p>
       ) : (
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-[60dvh] overflow-y-auto custom-scrollbar p-1 -m-1">
           {images.map((img) => (
