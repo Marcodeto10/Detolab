@@ -76,7 +76,6 @@ The final result should look like a high-end commercial product photograph, real
 [LOGO IMAGE] = locked asset
 [REFERENCE IMAGE] = style guide`;
 
-// Portadas: fotos de Unsplash (licencia libre, se pueden usar sin pedir permiso)
 export const TOOLS: Record<ToolId, ToolSpec> = {
   create: {
     id: 'create',
@@ -97,7 +96,7 @@ export const TOOLS: Record<ToolId, ToolSpec> = {
     promptPlaceholder: 'e.g. Put the person from image 1 on the beach from image 2, golden hour light',
     promptRequired: true,
     folderId: 'all',
-    cover: 'https://images.unsplash.com/photo-1640102953836-5651f5d6b240?w=1200&q=80&auto=format&fit=crop',
+    cover: 'https://i.pinimg.com/736x/d1/2e/8e/d12e8e6856ef91f99b389648ae910e80.jpg',
   },
   edit: {
     id: 'edit',
@@ -111,7 +110,7 @@ export const TOOLS: Record<ToolId, ToolSpec> = {
     promptPlaceholder: 'e.g. Change the sky to a sunset and remove the person in the background',
     promptRequired: true,
     folderId: 'all',
-    cover: 'https://images.unsplash.com/photo-1612982748056-22087c01f886?w=1200&q=80&auto=format&fit=crop',
+    cover: 'https://i.pinimg.com/736x/4f/a3/93/4fa39380edb038dd930f6bbccbae6cab.jpg',
   },
   mockup: {
     id: 'mockup',
@@ -126,7 +125,7 @@ export const TOOLS: Record<ToolId, ToolSpec> = {
     promptRequired: false,
     defaultPrompt: MOCKUP_PROMPT,
     folderId: 'mockups',
-    cover: 'https://images.unsplash.com/photo-1762365189058-7be5b07e038b?w=1200&q=80&auto=format&fit=crop',
+    cover: 'https://i.pinimg.com/1200x/f0/e9/a1/f0e9a10b372f4ba24dad94217636fb26.jpg',
   },
   product: {
     id: 'product',
@@ -142,7 +141,7 @@ export const TOOLS: Record<ToolId, ToolSpec> = {
     promptRequired: false,
     defaultPrompt: PRODUCT_PROMPT,
     folderId: 'products',
-    cover: 'https://images.unsplash.com/photo-1668264514570-24b30c2e899f?w=1200&q=80&auto=format&fit=crop',
+    cover: 'https://i.pinimg.com/736x/ab/0e/1e/ab0e1efcad96fcb933ea954784b87a4b.jpg',
   },
   bulk: {
     id: 'bulk',
@@ -156,13 +155,13 @@ export const TOOLS: Record<ToolId, ToolSpec> = {
     promptPlaceholder: 'e.g. Remove the background and replace it with a white studio backdrop',
     promptRequired: true,
     folderId: 'all',
-    cover: 'https://images.unsplash.com/photo-1762028895582-1d0b4c3822c6?w=1200&q=80&auto=format&fit=crop',
+    cover: 'https://i.pinimg.com/1200x/34/69/9e/34699eca0b59961a9490f5279181afe4.jpg',
   },
 };
 
 export const TOOL_ORDER: ToolId[] = ['create', 'edit', 'mockup', 'product', 'bulk'];
 
-export const GALLERY_COVER = 'https://images.unsplash.com/photo-1507643179773-3e975d7ac515?w=1200&q=80&auto=format&fit=crop';
+export const GALLERY_COVER = 'https://i.pinimg.com/1200x/5c/85/8e/5c858e29b3be3e26b63a014e5d4664e0.jpg';
 
 /** Atajos para mandar una imagen ya generada a otra herramienta. */
 export const USE_AS: { label: string; tool: ToolId; slot: SlotId }[] = [
