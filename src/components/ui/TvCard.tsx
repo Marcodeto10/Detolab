@@ -48,7 +48,7 @@ export const TvCard: React.FC<TvCardProps> = ({ art, artClassName, children, cla
       title={title}
       onPointerMove={onMove}
       onPointerLeave={onLeave}
-      className={cn('tv-lockup group block w-full min-w-0 text-left', className)}
+      className={cn('tv-lockup group block w-full min-w-0 self-start text-left', className)}
     >
       <div ref={artRef} className={cn('tv-card bg-raised', artClassName)}>
         {art}

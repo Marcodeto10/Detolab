@@ -1,8 +1,8 @@
 import React from 'react';
-import { ChevronRight, Sparkles } from 'lucide-react';
-import { TOOLS, type ToolId } from '../lib/tools';
+import { ChevronRight } from 'lucide-react';
+import { TOOLS, TOOL_ORDER, GALLERY_COVER, type ToolId } from '../lib/tools';
 import { useGallery } from '../lib/galleryContext';
-import { Button, CoverImage } from './ui/controls';
+import { CoverImage } from './ui/controls';
 import { TvCard } from './ui/TvCard';
 
 interface HomeProps {
@@ -11,8 +11,6 @@ interface HomeProps {
   onOpenGallery: () => void;
   onOpenImage: (id: string) => void;
 }
-
-const SHELF_TOOLS: ToolId[] = ['edit', 'mockup', 'product', 'bulk'];
 
 const ShelfHeader: React.FC<{ title: string; action?: React.ReactNode }> = ({ title, action }) => (
   <div className="flex items-baseline justify-between gap-4">
@@ -26,50 +24,48 @@ export const Home: React.FC<HomeProps> = ({ userName, onOpenTool, onOpenGallery,
   const firstName = userName.trim().split(/\s+/)[0];
   const recent = images.slice(0, 16);
 
-  return (
-    <div className="max-w-[1600px] mx-auto px-4 pt-4 pb-10 lg:px-10 lg:pt-8 space-y-10 lg:space-y-12">
-      {/* Destacado, como el "top shelf" de Apple TV */}
-      <section className="relative overflow-hidden rounded-3xl bg-raised h-[64dvh] min-h-[440px] md:h-auto md:aspect-[21/9] md:min-h-[400px]">
-        <CoverImage src={TOOLS.create.cover} alt="" className="absolute inset-0 w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent md:bg-gradient-to-r md:from-black/85 md:via-black/35 md:to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 p-6 md:p-10 lg:p-14 max-w-2xl">
-          <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-white/70">
-            {firstName ? `Welcome back, ${firstName}` : 'Detolab Studio'}
-          </p>
-          <h1 className="mt-2 text-6xl lg:text-8xl font-bold tracking-tight leading-[0.95] text-white">Create</h1>
-          <p className="mt-4 text-[16px] lg:text-[19px] leading-snug text-white/80 max-w-lg">{TOOLS.create.description}</p>
-          <div className="mt-7 flex flex-wrap items-center gap-3">
-            <Button variant="primary" size="lg" onClick={() => onOpenTool('create')}>
-              <Sparkles className="w-4 h-4" />
-              Start creating
-            </Button>
-            <Button size="lg" className="hidden sm:inline-flex" onClick={onOpenGallery}>
-              Open gallery
-            </Button>
-          </div>
-        </div>
-      </section>
+  // Las 5 herramientas + la galería: 3 y 3
+  const cards = [
+    ...TOOL_ORDER.map((id) => ({
+      key: id,
+      title: TOOLS[id].name,
+      description: TOOLS[id].description,
+      cover: TOOLS[id].cover,
+      onClick: () => onOpenTool(id),
+    })),
+    {
+      key: 'gallery',
+      title: 'Gallery',
+      description: "Everything you've generated, organized in folders.",
+      cover: GALLERY_COVER,
+      onClick: onOpenGallery,
+    },
+  ];
 
-      {/* Fila de herramientas */}
+  return (
+    <div className="max-w-[1600px] mx-auto px-4 pt-6 pb-10 lg:px-10 lg:pt-10 space-y-10 lg:space-y-12">
       <section>
-        <ShelfHeader title="Tools" />
-        <div className="mt-4 -mx-4 px-4 scroll-px-4 pb-3 pt-1 flex gap-4 overflow-x-auto snap-x snap-mandatory no-scrollbar md:mx-0 md:px-0 md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-6 md:overflow-visible">
-          {SHELF_TOOLS.map((id) => (
+        <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-faint">
+          {firstName ? `Welcome back, ${firstName}` : 'Detolab'}
+        </p>
+        <h1 className="mt-1.5 text-4xl lg:text-5xl font-bold tracking-tight leading-none">Creative Studio</h1>
+        <p className="mt-3 text-[15px] text-muted">Pick a tool to get started.</p>
+
+        <div className="mt-7 grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-6 lg:gap-x-6 lg:gap-y-8">
+          {cards.map((c) => (
             <TvCard
-              key={id}
-              onClick={() => onOpenTool(id)}
-              className="snap-start shrink-0 w-[78%] sm:w-[46%] md:w-auto"
-              artClassName="aspect-video rounded-2xl"
-              art={<CoverImage src={TOOLS[id].cover} alt="" className="absolute inset-0 w-full h-full object-cover" />}
+              key={c.key}
+              onClick={c.onClick}
+              artClassName="aspect-[16/10] rounded-2xl"
+              art={<CoverImage src={c.cover} alt="" className="absolute inset-0 w-full h-full object-cover" />}
             >
-              <p className="mt-3 text-[16px] font-semibold text-ink">{TOOLS[id].name}</p>
-              <p className="mt-0.5 text-[13px] leading-snug text-muted line-clamp-2">{TOOLS[id].description}</p>
+              <p className="mt-3 text-[15px] lg:text-[17px] font-semibold text-ink">{c.title}</p>
+              <p className="mt-0.5 text-[12px] lg:text-[14px] leading-snug text-muted line-clamp-2">{c.description}</p>
             </TvCard>
           ))}
         </div>
       </section>
 
-      {/* Recientes */}
       <section>
         <ShelfHeader
           title="Recent"
