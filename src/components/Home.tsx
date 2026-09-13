@@ -19,9 +19,8 @@ const ShelfHeader: React.FC<{ title: string; action?: React.ReactNode }> = ({ ti
   </div>
 );
 
-export const Home: React.FC<HomeProps> = ({ userName, onOpenTool, onOpenGallery, onOpenImage }) => {
+export const Home: React.FC<HomeProps> = ({ onOpenTool, onOpenGallery, onOpenImage }) => {
   const { images, ready } = useGallery();
-  const firstName = userName.trim().split(/\s+/)[0];
   const recent = images.slice(0, 16);
 
   // Las 5 herramientas + la galería: 3 y 3
@@ -45,10 +44,7 @@ export const Home: React.FC<HomeProps> = ({ userName, onOpenTool, onOpenGallery,
   return (
     <div className="max-w-[1600px] mx-auto px-4 pt-6 pb-10 lg:px-10 lg:pt-10 space-y-10 lg:space-y-12">
       <section>
-        <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-faint">
-          {firstName ? `Welcome back, ${firstName}` : 'Detolab'}
-        </p>
-        <h1 className="mt-1.5 text-4xl lg:text-5xl font-bold tracking-tight leading-none">Creative Studio</h1>
+        <h1 className="text-4xl lg:text-5xl font-bold tracking-tight leading-none">Creative Studio</h1>
         <p className="mt-3 text-[15px] text-muted">Pick a tool to get started.</p>
 
         <div className="mt-7 grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-6 lg:gap-x-6 lg:gap-y-8">
