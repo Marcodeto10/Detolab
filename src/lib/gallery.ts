@@ -6,11 +6,18 @@
 //
 // Las imágenes se guardan como Blob (no como base64) porque un PNG en 4K
 // pesa mucho y base64 le suma ~33% encima.
+//
+// Cada imagen guarda además una miniatura liviana. Las grillas usan la
+// miniatura: mostrar el PNG completo en un cuadradito de 200px obliga al
+// navegador a decodificar millones de píxeles por imagen y todo se pone lento.
 
 const DB_NAME = 'detolab';
 const DB_VERSION = 1;
 const STORE_IMAGES = 'images';
 const STORE_FOLDERS = 'folders';
+
+/** Lado mayor de las miniaturas: alcanza para verse nítidas en pantallas retina. */
+const THUMB_SIZE = 640;
 
 export interface GalleryFolder {
   id: string;
@@ -21,15 +28,20 @@ export interface GalleryFolder {
 export interface GalleryRecord {
   id: string;
   blob: Blob;
+  /** Miniatura JPEG liviana para grillas (las imágenes viejas no la tienen hasta que se genera) */
+  thumb?: Blob;
   prompt: string;
   folderId: string;
   createdAt: number;
 }
 
-/** Lo que consume la UI: igual que antes, con `url` string. */
+/** Lo que consume la UI. */
 export interface GalleryImage {
   id: string;
+  /** Imagen completa: para ver en grande, editar y descargar */
   url: string;
+  /** Miniatura: para grillas y tiras. Undefined mientras se genera */
+  thumbUrl?: string;
   prompt: string;
   folderId: string;
   createdAt: number;
@@ -56,7 +68,7 @@ const openDB = (): Promise<IDBDatabase> => {
     };
 
     req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error ?? new Error('No se pudo abrir IndexedDB'));
+    req.onerror = () => reject(req.error ?? new Error('Could not open IndexedDB'));
   });
 
   return dbPromise;
@@ -77,31 +89,47 @@ const tx = async <T>(
 };
 
 // --- Object URLs -----------------------------------------------------------
-// Mantenemos un registro id -> objectURL para poder revocarlos al borrar
-// y no dejar memoria colgada.
+// Registro id -> objectURL para poder revocarlos al borrar y no dejar memoria colgada.
 
 const urlCache = new Map<string, string>();
+const thumbCache = new Map<string, string>();
 
-const toUrl = (id: string, blob: Blob): string => {
-  const existing = urlCache.get(id);
+const cachedUrl = (cache: Map<string, string>, id: string, blob: Blob): string => {
+  const existing = cache.get(id);
   if (existing) return existing;
   const url = URL.createObjectURL(blob);
-  urlCache.set(id, url);
+  cache.set(id, url);
   return url;
 };
 
+const toUrl = (id: string, blob: Blob) => cachedUrl(urlCache, id, blob);
+const toThumbUrl = (id: string, blob: Blob) => cachedUrl(thumbCache, id, blob);
+
 const releaseUrl = (id: string) => {
-  const url = urlCache.get(id);
-  if (url) {
-    URL.revokeObjectURL(url);
-    urlCache.delete(id);
+  for (const cache of [urlCache, thumbCache]) {
+    const url = cache.get(id);
+    if (url) {
+      URL.revokeObjectURL(url);
+      cache.delete(id);
+    }
   }
 };
 
 export const releaseAllUrls = () => {
-  urlCache.forEach((url) => URL.revokeObjectURL(url));
-  urlCache.clear();
+  for (const cache of [urlCache, thumbCache]) {
+    cache.forEach((url) => URL.revokeObjectURL(url));
+    cache.clear();
+  }
 };
+
+const toImage = (r: GalleryRecord): GalleryImage => ({
+  id: r.id,
+  url: toUrl(r.id, r.blob),
+  thumbUrl: r.thumb ? toThumbUrl(r.id, r.thumb) : undefined,
+  prompt: r.prompt,
+  folderId: r.folderId,
+  createdAt: r.createdAt,
+});
 
 // --- Conversión ------------------------------------------------------------
 
@@ -117,6 +145,71 @@ export const blobToDataUrl = (blob: Blob): Promise<string> =>
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(blob);
   });
+
+// --- Miniaturas ------------------------------------------------------------
+
+/** Achica la imagen a un JPEG liviano. Devuelve null si no se pudo. */
+export const makeThumbnail = async (blob: Blob, max = THUMB_SIZE): Promise<Blob | null> => {
+  try {
+    const bitmap = await createImageBitmap(blob);
+    const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      bitmap.close();
+      return null;
+    }
+    // Fondo oscuro por si la imagen tiene transparencia (JPEG no la soporta)
+    ctx.fillStyle = '#1c1c1e';
+    ctx.fillRect(0, 0, w, h);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close();
+    return await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.82));
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Genera las miniaturas que falten (imágenes guardadas antes de que existieran).
+ * Va de a una y le da respiro al navegador entre cada una, así no traba la pantalla.
+ */
+export const backfillThumbnails = async (
+  ids: string[],
+  onDone: (id: string, thumbUrl: string | null) => void,
+  shouldStop: () => boolean
+) => {
+  for (const id of ids) {
+    if (shouldStop()) return;
+    try {
+      const rec = await tx<GalleryRecord | undefined>(STORE_IMAGES, 'readonly', (s) => s.get(id));
+      if (!rec) continue;
+      if (rec.thumb) {
+        onDone(id, toThumbUrl(id, rec.thumb));
+        continue;
+      }
+      const thumb = await makeThumbnail(rec.blob);
+      if (!thumb) {
+        onDone(id, null);
+        continue;
+      }
+      // Releemos por si la imagen se movió de carpeta o se borró mientras tanto
+      const fresh = await tx<GalleryRecord | undefined>(STORE_IMAGES, 'readonly', (s) => s.get(id));
+      if (!fresh || shouldStop()) continue;
+      await tx(STORE_IMAGES, 'readwrite', (s) => s.put({ ...fresh, thumb }));
+      onDone(id, toThumbUrl(id, thumb));
+    } catch {
+      onDone(id, null);
+    }
+    await new Promise((r) => setTimeout(r, 0));
+  }
+};
 
 // --- Carpetas --------------------------------------------------------------
 
@@ -162,17 +255,9 @@ export const deleteFolder = async (id: string): Promise<void> => {
 export const listImages = async (): Promise<GalleryImage[]> => {
   try {
     const rows = await tx<GalleryRecord[]>(STORE_IMAGES, 'readonly', (s) => s.getAll());
-    return rows
-      .sort((a, b) => b.createdAt - a.createdAt)
-      .map((r) => ({
-        id: r.id,
-        url: toUrl(r.id, r.blob),
-        prompt: r.prompt,
-        folderId: r.folderId,
-        createdAt: r.createdAt,
-      }));
+    return rows.sort((a, b) => b.createdAt - a.createdAt).map(toImage);
   } catch (err) {
-    console.error('No se pudo leer la galería:', err);
+    console.error('Could not read the gallery:', err);
     return [];
   }
 };
@@ -183,23 +268,18 @@ export const saveImage = async (
   folderId: string
 ): Promise<GalleryImage> => {
   const blob = await dataUrlToBlob(dataUrl);
+  const thumb = await makeThumbnail(blob);
   const record: GalleryRecord = {
     id: `img_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     blob,
-    prompt: prompt || 'Generated Image',
+    thumb: thumb ?? undefined,
+    prompt: prompt || 'Generated image',
     folderId,
     createdAt: Date.now(),
   };
 
   await tx(STORE_IMAGES, 'readwrite', (s) => s.put(record));
-
-  return {
-    id: record.id,
-    url: toUrl(record.id, blob),
-    prompt: record.prompt,
-    folderId: record.folderId,
-    createdAt: record.createdAt,
-  };
+  return toImage(record);
 };
 
 export const deleteImage = async (id: string): Promise<void> => {
@@ -267,16 +347,10 @@ export const formatBytes = (n: number): string => {
 export const getRecord = (id: string) =>
   tx<GalleryRecord | undefined>(STORE_IMAGES, 'readonly', (s) => s.get(id));
 
-/** Vuelve a guardar un registro borrado (para "Deshacer"). */
+/** Vuelve a guardar un registro borrado (para "Undo"). */
 export const putRecord = async (record: GalleryRecord): Promise<GalleryImage> => {
   await tx(STORE_IMAGES, 'readwrite', (s) => s.put(record));
-  return {
-    id: record.id,
-    url: toUrl(record.id, record.blob),
-    prompt: record.prompt,
-    folderId: record.folderId,
-    createdAt: record.createdAt,
-  };
+  return toImage(record);
 };
 
 // --- Export ----------------------------------------------------------------
@@ -301,7 +375,7 @@ export const exportZip = async (ids?: string[]): Promise<number> => {
   const url = URL.createObjectURL(new Blob([zipped], { type: 'application/zip' }));
   const a = document.createElement('a');
   a.href = url;
-  a.download = `detolab-galeria-${new Date().toISOString().slice(0, 10)}.zip`;
+  a.download = `detolab-gallery-${new Date().toISOString().slice(0, 10)}.zip`;
   document.body.appendChild(a);
   a.click();
   a.remove();

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   Check,
@@ -173,8 +173,11 @@ export const Studio: React.FC<StudioProps> = ({
 
   const updateSettings = (patch: Partial<StudioSettings>) => setSettings((s) => normalizeSettings({ ...s, ...patch }));
 
-  const urlOf = (g: Generation) =>
-    g.galleryId ? gallery.images.find((i) => i.id === g.galleryId)?.url : g.fallbackUrl;
+  const imageById = useMemo(() => new Map(gallery.images.map((i) => [i.id, i])), [gallery.images]);
+  const urlOf = (g: Generation) => (g.galleryId ? imageById.get(g.galleryId)?.url : g.fallbackUrl);
+  // Miniatura liviana para tiras y grillas; la imagen completa solo para verla en grande
+  const thumbOf = (g: Generation) =>
+    g.galleryId ? imageById.get(g.galleryId)?.thumbUrl ?? urlOf(g) : g.fallbackUrl;
 
   const slotSpec = (t: ToolId, slotId: SlotId) => TOOLS[t].slots.find((s) => s.id === slotId);
 
@@ -585,7 +588,7 @@ export const Studio: React.FC<StudioProps> = ({
               }
               className="aspect-square rounded-xl overflow-hidden bg-white/[0.03]"
             >
-              <img src={urlOf(g)} alt={g.prompt} className="w-full h-full object-cover" />
+              <img src={thumbOf(g)} alt={g.prompt} decoding="async" className="w-full h-full object-cover" />
             </button>
           )
         )}
@@ -796,7 +799,7 @@ export const Studio: React.FC<StudioProps> = ({
           </div>
         </div>
 
-        <div className="sticky bottom-16 lg:bottom-0 z-30 px-4 lg:px-6 py-3 lg:py-4 border-t border-line bg-black/80 lg:bg-panel/90 backdrop-blur-2xl backdrop-saturate-150 space-y-2">
+        <div className="sticky bottom-16 lg:bottom-0 z-30 px-4 lg:px-6 py-3 lg:py-4 border-t border-line bg-black/85 lg:bg-panel/95 backdrop-blur-xl space-y-2">
           {lastError && !run && (
             <p className="flex gap-2 text-[13px] text-red-300 leading-snug">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -923,7 +926,7 @@ export const Studio: React.FC<StudioProps> = ({
                     g.id === selectedId ? 'ring-white' : 'ring-transparent opacity-60 hover:opacity-100'
                   )}
                 >
-                  <img src={urlOf(g)} alt="" className="w-full h-full object-cover" />
+                  <img src={thumbOf(g)} alt="" decoding="async" className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>

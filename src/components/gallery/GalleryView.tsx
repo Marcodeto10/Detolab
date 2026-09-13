@@ -153,14 +153,13 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ onOpenImage, onGoToStu
               key={img.id}
               onClick={() => onOpenImage(img.id, filtered.map((i) => i.id))}
               title={img.prompt}
-              className="relative aspect-square rounded-xl overflow-hidden bg-raised transition-[transform,box-shadow] duration-300 ease-out hover:z-10 hover:scale-[1.04] hover:shadow-[0_24px_48px_rgba(0,0,0,0.65)]"
+              className="relative aspect-square rounded-xl overflow-hidden bg-raised transition-[transform,box-shadow] duration-300 ease-out hover:z-10 hover:scale-[1.04] hover:shadow-[0_24px_48px_rgba(0,0,0,0.65)] [content-visibility:auto] [contain-intrinsic-size:auto_300px]"
             >
-              <img
-                src={img.url}
-                alt={img.prompt}
-                loading="lazy"
-                className="w-full h-full object-cover"
-              />
+              {img.thumbUrl ? (
+                <img src={img.thumbUrl} alt={img.prompt} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full animate-pulse bg-white/[0.04]" />
+              )}
             </button>
           ))}
         </div>

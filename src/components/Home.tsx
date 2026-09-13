@@ -84,7 +84,13 @@ export const Home: React.FC<HomeProps> = ({ onOpenTool, onOpenGallery, onOpenIma
                 ariaLabel={img.prompt}
                 className="snap-start shrink-0 w-40 lg:w-52"
                 artClassName="aspect-square rounded-2xl"
-                art={<img src={img.url} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />}
+                art={
+                  img.thumbUrl ? (
+                    <img src={img.thumbUrl} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
+                  ) : (
+                    <div className="absolute inset-0 animate-pulse bg-white/[0.04]" />
+                  )
+                }
               />
             ))}
           </div>

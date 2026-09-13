@@ -23,7 +23,7 @@ interface ShellProps {
 export const Shell: React.FC<ShellProps> = ({ view, onNavigate, onOpenSettings, userName, galleryCount, children }) => (
   <div className="min-h-dvh bg-canvas text-ink">
     {/* Barra superior con la navegación en cápsula, como Apple TV */}
-    <header className="sticky top-0 z-40 h-14 bg-black/70 backdrop-blur-2xl backdrop-saturate-150 border-b border-white/[0.06]">
+    <header className="sticky top-0 z-40 h-14 bg-black/80 backdrop-blur-xl border-b border-white/[0.06]">
       <div className="h-full px-4 lg:px-6 flex items-center justify-between lg:grid lg:grid-cols-[1fr_auto_1fr]">
         <button onClick={() => onNavigate('home')} className="justify-self-start" aria-label="Go to home">
           <Logo className="w-24 lg:w-28 h-auto" />
@@ -66,7 +66,7 @@ export const Shell: React.FC<ShellProps> = ({ view, onNavigate, onOpenSettings, 
     {/* Barra de pestañas inferior (celular), estilo iOS */}
     <nav
       aria-label="Main"
-      className="lg:hidden fixed bottom-0 inset-x-0 z-40 grid grid-cols-3 bg-black/75 backdrop-blur-2xl backdrop-saturate-150 border-t border-white/[0.08] pb-[env(safe-area-inset-bottom)]"
+      className="lg:hidden fixed bottom-0 inset-x-0 z-40 grid grid-cols-3 bg-black/85 backdrop-blur-xl border-t border-white/[0.08] pb-[env(safe-area-inset-bottom)]"
     >
       {NAV.map(({ id, label, icon: Icon }) => (
         <button

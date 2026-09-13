@@ -19,7 +19,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ imageId, ids, onClose,
   const toast = useToast();
   const touchX = useRef<number | null>(null);
 
-  const liveIds = ids.filter((id) => images.some((i) => i.id === id));
+  const liveSet = new Set(images.map((i) => i.id));
+  const liveIds = ids.filter((id) => liveSet.has(id));
   const img = imageId ? images.find((i) => i.id === imageId) : undefined;
   const index = img ? liveIds.indexOf(img.id) : -1;
   const prevId = index > 0 ? liveIds[index - 1] : null;

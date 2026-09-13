@@ -25,7 +25,11 @@ export const GalleryPicker: React.FC<GalleryPickerProps> = ({ open, onClose, onP
               title={img.prompt}
               className="aspect-square rounded-lg overflow-hidden bg-white/[0.03] hover:ring-2 hover:ring-white transition"
             >
-              <img src={img.url} alt={img.prompt} loading="lazy" className="w-full h-full object-cover" />
+              {img.thumbUrl ? (
+                <img src={img.thumbUrl} alt={img.prompt} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full animate-pulse bg-white/[0.04]" />
+              )}
             </button>
           ))}
         </div>
