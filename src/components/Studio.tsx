@@ -775,7 +775,7 @@ Original Prompt: ${currentPrompt}`,
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white font-sans selection:bg-white selection:text-black flex overflow-hidden p-0">
+    <div className="studio-grain min-h-screen bg-[#0a0a0a] text-white font-sans selection:bg-white selection:text-black flex overflow-hidden p-0">
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-black/80 backdrop-blur-xl border-b border-white/5 z-[60] flex items-center justify-between px-6">
         <Logo className="w-24 h-auto" />
@@ -2057,52 +2057,59 @@ Original Prompt: ${currentPrompt}`,
                 {/* Section Grid */}
                 <div className="space-y-4 pb-8">
                   <div>
-                    <h2 className="text-2xl font-bold tracking-tighter text-white/90">Creative Studio</h2>
-                    <p className="text-xs text-white/30 mt-1">Select a workspace to begin your next masterpiece.</p>
+                    <h2 className="font-display text-4xl lg:text-5xl tracking-tight leading-none text-white/90">Creative Studio</h2>
+                    <p className="text-xs text-white/40 mt-2">Select a workspace to begin your next masterpiece.</p>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                    <DashboardCard 
+                  <div className="grid grid-cols-2 md:grid-cols-6 lg:grid-cols-12 gap-4">
+                    <DashboardCard
                       title="Creator"
                       description="Generate high-fidelity visuals from text prompts."
                       image="https://i.pinimg.com/736x/d1/2e/8e/d12e8e6856ef91f99b389648ae910e80.jpg"
                       onClick={() => setMode('compose')}
+                      className={cn(SECTION_CARD_SIZE, "md:col-span-2 lg:col-span-3")}
                     />
-                    <DashboardCard 
+                    <DashboardCard
                       title="Mockups"
                       description="Place designs into realistic environments."
                       image="https://i.pinimg.com/1200x/f0/e9/a1/f0e9a10b372f4ba24dad94217636fb26.jpg"
                       onClick={() => setMode('mockups')}
+                      className={cn(SECTION_CARD_SIZE, "md:col-span-2 lg:col-span-3")}
                     />
-                    <DashboardCard 
+                    <DashboardCard
                       title="Product"
                       description="Create professional commercial photography."
                       image="https://i.pinimg.com/736x/ab/0e/1e/ab0e1efcad96fcb933ea954784b87a4b.jpg"
                       onClick={() => setMode('product')}
+                      className={cn(SECTION_CARD_SIZE, "md:col-span-2 lg:col-span-3")}
                     />
-                    <DashboardCard 
+                    <DashboardCard
                       title="Editor"
                       description="Modify existing images with AI precision."
                       image="https://i.pinimg.com/736x/4f/a3/93/4fa39380edb038dd930f6bbccbae6cab.jpg"
                       onClick={() => setMode('edit')}
+                      className={cn(SECTION_CARD_SIZE, "md:col-span-2 lg:col-span-3")}
                     />
-                    <DashboardCard 
+                    <DashboardCard
                       title="Bulk"
                       description="Process multiple images with the same prompt."
                       image="https://i.pinimg.com/1200x/34/69/9e/34699eca0b59961a9490f5279181afe4.jpg"
                       onClick={() => setMode('bulk')}
+                      className={cn(SECTION_CARD_SIZE, "md:col-span-2 lg:col-span-4")}
                     />
-                    <DashboardCard 
+                    <DashboardCard
                       title="Magic"
                       description="Optimize and expand your prompts."
                       image="https://i.pinimg.com/736x/0c/57/58/0c5758d9398158b51a46d096278f2b87.jpg"
                       onClick={() => setMode('improver')}
+                      className={cn(SECTION_CARD_SIZE, "md:col-span-2 lg:col-span-4")}
                     />
-                    <DashboardCard 
+                    <DashboardCard
                       title="Gallery"
                       description="Browse your collection of visions."
                       image="https://i.pinimg.com/1200x/5c/85/8e/5c858e29b3be3e26b63a014e5d4664e0.jpg"
                       onClick={() => setMode('gallery')}
+                      className={cn(SECTION_CARD_SIZE, "col-span-2 md:col-span-6 lg:col-span-4")}
                     />
                   </div>
                 </div>
@@ -2110,8 +2117,8 @@ Original Prompt: ${currentPrompt}`,
                 {/* Gallery Preview Section */}
                 <div className="space-y-4 pb-8">
                   <div>
-                    <h2 className="text-2xl font-bold tracking-tighter text-white/90">My gallery</h2>
-                    <p className="text-xs text-white/30 mt-1">Browse your collection of visions.</p>
+                    <h2 className="font-display text-4xl lg:text-5xl tracking-tight leading-none text-white/90">My gallery</h2>
+                    <p className="text-xs text-white/40 mt-2">Browse your collection of visions.</p>
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 pb-8">
@@ -2463,30 +2470,31 @@ Original Prompt: ${currentPrompt}`,
 );
 };
 
-const DashboardCard: React.FC<{ 
-  title: string; 
-  description: string; 
-  image: string; 
+// Alto fijo para las cards de secciones del home, así llenan el ancho y el alto disponible
+const SECTION_CARD_SIZE = "aspect-auto h-56 md:h-64 lg:h-[36vh] lg:min-h-[280px]";
+
+const DashboardCard: React.FC<{
+  title: string;
+  description: string;
+  image: string;
   onClick: () => void;
   isGallery?: boolean;
   onUse?: () => void;
   onDownload?: () => void;
-}> = ({ title, description, image, onClick, isGallery, onUse, onDownload }) => (
-  <div 
+  className?: string;
+}> = ({ title, description, image, onClick, isGallery, onUse, onDownload, className }) => (
+  <div
     onClick={onClick}
-    className="group relative aspect-[1/1.4] w-full rounded-lg overflow-hidden transition-all hover:scale-[1.02] active:scale-[0.98] text-left shadow-2xl cursor-pointer"
+    className={cn("group relative aspect-[1/1.4] w-full rounded-lg overflow-hidden transition-all hover:scale-[1.02] active:scale-[0.98] text-left shadow-2xl cursor-pointer", className)}
   >
     <img src={image} alt={title} className="absolute inset-0 w-full h-full object-cover transition-all duration-700 group-hover:scale-110 group-hover:brightness-110" referrerPolicy="no-referrer" />
     <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent opacity-90 group-hover:opacity-70 transition-opacity" />
-    
+
     {!isGallery ? (
-      <div className="absolute inset-0 p-4 pb-2 flex flex-col justify-end">
-        <div className="drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)]">
-          {title && <h3 className="text-xl font-bold tracking-tighter text-white mb-0 drop-shadow-2xl leading-none">{title}</h3>}
-          <p className="text-[10px] text-white/60 font-medium leading-tight line-clamp-2 drop-shadow-xl mt-1">{description}</p>
-        </div>
-        <div className="flex items-center gap-1.5 text-[8px] font-bold tracking-widest text-white uppercase opacity-0 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0 drop-shadow-2xl mt-2">
-          Enter
+      <div className="absolute inset-0 p-4 lg:p-6 flex flex-col justify-end">
+        <div>
+          {title && <h3 className="font-display text-3xl lg:text-[2.75rem] tracking-tight text-white leading-none">{title}</h3>}
+          <p className="text-[11px] lg:text-[13px] text-white/70 leading-snug line-clamp-2 mt-1.5 lg:mt-2">{description}</p>
         </div>
       </div>
     ) : (
