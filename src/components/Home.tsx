@@ -42,16 +42,16 @@ export const Home: React.FC<HomeProps> = ({ onOpenTool, onOpenGallery, onOpenIma
   ];
 
   return (
-    <div className="max-w-[1600px] mx-auto px-4 pt-6 pb-10 lg:px-10 lg:pt-10 space-y-10 lg:space-y-12">
+    <div className="max-w-[1120px] mx-auto px-4 pt-6 pb-10 lg:px-10 lg:pt-10 space-y-10 lg:space-y-12">
       <section>
         <h1 className="sr-only">Detolab</h1>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-6 lg:gap-x-6 lg:gap-y-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6">
           {cards.map((c) => (
             <TvCard
               key={c.key}
               onClick={c.onClick}
-              artClassName="aspect-[16/10] rounded-2xl"
+              artClassName="aspect-square rounded-2xl"
               art={
                 <>
                   <CoverImage src={c.cover} alt="" className="absolute inset-0 w-full h-full object-cover" />
