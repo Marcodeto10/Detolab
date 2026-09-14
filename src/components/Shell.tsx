@@ -89,12 +89,8 @@ export const Shell: React.FC<ShellProps> = ({
 
   return (
     <div className="min-h-dvh bg-canvas text-ink">
-      <header
-        className={cn(
-          'sticky top-0 z-40 h-14 lg:h-16 bg-black/80 backdrop-blur-xl border-b border-white/[0.06]',
-          inSection && 'lg:border-b-2 lg:border-line'
-        )}
-      >
+      {/* Una sola barra superior, idéntica en todas las pantallas */}
+      <header className="sticky top-0 z-40 h-14 lg:h-16 bg-black/80 backdrop-blur-xl border-b lg:border-b-2 border-line">
         <div className="h-full px-4 lg:px-6 flex items-center justify-between lg:grid lg:grid-cols-[1fr_auto_1fr]">
           <button onClick={() => onNavigate('home')} className="justify-self-start" aria-label="Go to home">
             <Logo className="w-28 lg:w-32 h-auto" />

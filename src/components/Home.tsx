@@ -52,7 +52,7 @@ export const Home: React.FC<HomeProps> = ({ onOpenTool, onOpenGallery, onOpenIma
   ];
 
   return (
-    <div className="max-w-[1120px] mx-auto px-4 pt-6 pb-10 lg:px-10 lg:pt-10 space-y-10 lg:space-y-12">
+    <div className="max-w-[1040px] mx-auto px-4 pt-6 pb-10 lg:px-10 lg:pt-10 space-y-10 lg:space-y-12">
       <section>
         <h1 className="sr-only">Detolab</h1>
 
@@ -61,14 +61,14 @@ export const Home: React.FC<HomeProps> = ({ onOpenTool, onOpenGallery, onOpenIma
             <TvCard
               key={c.key}
               onClick={c.onClick}
-              artClassName="aspect-square rounded-2xl"
+              artClassName="aspect-[3/4] rounded-2xl"
               art={
                 <>
                   <CoverImage src={c.cover} alt="" className="absolute inset-0 w-full h-full object-cover" />
                   <div aria-hidden className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4 lg:p-5">
-                    <p className="text-[15px] sm:text-[18px] lg:text-[22px] font-semibold tracking-tight leading-tight text-white truncate">{c.title}</p>
-                    <p className="hidden sm:block mt-1 text-[13px] lg:text-[14px] leading-snug text-white truncate">{c.description}</p>
+                    <p className="text-[18px] sm:text-[24px] lg:text-[30px] font-bold tracking-tight leading-none text-white truncate">{c.title}</p>
+                    <p className="hidden sm:block mt-2 text-[13px] lg:text-[14px] leading-snug text-white truncate">{c.description}</p>
                   </div>
                 </>
               }

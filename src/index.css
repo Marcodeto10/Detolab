@@ -21,6 +21,8 @@
 
 @layer base {
   html {
+    /* Reserva el lugar de la barra de scroll: la barra superior no se corre entre pantallas */
+    scrollbar-gutter: stable;
     color-scheme: dark;
   }
 
