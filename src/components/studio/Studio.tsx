@@ -177,6 +177,18 @@ export const Studio: React.FC<StudioProps> = ({
     return () => clearInterval(t);
   }, [run?.id]);
 
+  // Avisar antes de cerrar o recargar si hay algo generándose o una imagen que no se pudo guardar
+  const hasUnsaved = !!run || generations.some((g) => g.fallbackUrl);
+  useEffect(() => {
+    if (!hasUnsaved) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [hasUnsaved]);
+
   const updateSettings = (patch: Partial<StudioSettings>) => setSettings((s) => normalizeSettings({ ...s, ...patch }));
 
   const imageById = useMemo(() => new Map(gallery.images.map((i) => [i.id, i])), [gallery.images]);
@@ -261,19 +273,27 @@ export const Studio: React.FC<StudioProps> = ({
     folderId: string
   ): Promise<Generation> => {
     const base: Generation = { ...meta, id: uid(), createdAt: Date.now() };
-    try {
-      const saved = await gallery.save(dataUrl, meta.prompt, folderId, { tool: meta.tool, model: getModelId(settings.modelType) });
-      return { ...base, galleryId: saved.id };
-    } catch (err: any) {
-      toast({
-        message:
-          err?.name === 'QuotaExceededError'
-            ? 'Your browser is out of storage. Download and delete old images.'
-            : "The image was generated but couldn't be saved to the gallery. Download it.",
-        tone: 'error',
-      });
-      return { ...base, fallbackUrl: dataUrl };
+    // Si el guardado falla (red lenta, servidor ocupado) se reintenta antes de rendirse,
+    // así la imagen no queda solo en esta pestaña y se pierde al recargar
+    let lastError: any;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const saved = await gallery.save(dataUrl, meta.prompt, folderId, { tool: meta.tool, model: getModelId(settings.modelType) });
+        return { ...base, galleryId: saved.id };
+      } catch (err: any) {
+        lastError = err;
+        if (err?.name === 'QuotaExceededError') break;
+        if (attempt < 2) await wait(1500 * (attempt + 1));
+      }
     }
+    toast({
+      message:
+        lastError?.name === 'QuotaExceededError'
+          ? 'Your browser is out of storage. Download and delete old images.'
+          : "The image was generated but couldn't be saved to the gallery. Download it before leaving.",
+      tone: 'error',
+    });
+    return { ...base, fallbackUrl: dataUrl };
   };
 
   // Pide la imagen y deja registrado el uso, también si falla o se cancela
