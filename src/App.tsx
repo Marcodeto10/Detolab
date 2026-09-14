@@ -45,7 +45,9 @@ const Workspace: React.FC = () => {
   return (
     <Shell
       view={view}
+      tool={tool}
       onNavigate={navigate}
+      onOpenTool={openTool}
       onOpenSettings={() => setSettingsOpen(true)}
       userName={userName}
       galleryCount={images.length}
