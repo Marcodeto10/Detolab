@@ -1,5 +1,7 @@
 // Entrada de imágenes: archivos subidos, pegados, links y drag & drop.
 
+import { supabase } from './supabase';
+
 export type InputSource = 'upload' | 'paste' | 'link' | 'gallery' | 'result';
 
 export interface InputImage {
@@ -25,6 +27,8 @@ export const imageFilesFrom = (list: FileList | File[] | null | undefined): File
 
 const extFor = (mime: string) => (mime.split('/')[1] || 'png').replace('jpeg', 'jpg');
 
+const toFile = (blob: Blob, name: string) => new File([blob], `${name}.${extFor(blob.type)}`, { type: blob.type });
+
 const fetchWithTimeout = async (url: string, init: RequestInit = {}, ms = 8000) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms);
@@ -35,13 +39,6 @@ const fetchWithTimeout = async (url: string, init: RequestInit = {}, ms = 8000) 
   }
 };
 
-// Si el sitio de origen bloquea la descarga directa (CORS), probamos con proxies públicos.
-const PROXIES = [
-  (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-  (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-  (u: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-];
-
 /** Convierte una URL (blob:, data: o http) en un File. */
 export const fileFromUrl = async (url: string, name = 'image'): Promise<File> => {
   const u = url.trim();
@@ -49,38 +46,51 @@ export const fileFromUrl = async (url: string, name = 'image'): Promise<File> =>
     throw new Error('Paste a link that starts with http or https.');
   }
 
-  let res: Response | null = null;
   if (/^(blob:|data:)/i.test(u)) {
-    res = await fetch(u);
-  } else {
-    try {
-      res = await fetchWithTimeout(u, { mode: 'cors' });
-    } catch {
-      res = null;
-    }
-    if (!res?.ok) {
-      for (const proxy of PROXIES) {
-        try {
-          const r = await fetchWithTimeout(proxy(u));
-          if (r.ok) {
-            res = r;
-            break;
-          }
-        } catch {
-          // probamos el siguiente
-        }
-      }
-    }
+    const blob = await (await fetch(u)).blob();
+    if (!blob.type.startsWith('image/')) throw new Error("That link isn't an image.");
+    return toFile(blob, name);
   }
 
-  if (!res?.ok) {
-    throw new Error("Couldn't fetch the image from that link. Download it and upload it manually.");
+  // 1) Directo: funciona con los sitios que lo permiten (y con nuestra galería)
+  try {
+    const res = await fetchWithTimeout(u, { mode: 'cors' }, 4000);
+    if (res.ok) {
+      const blob = await res.blob();
+      if (blob.type.startsWith('image/')) return toFile(blob, name);
+    }
+  } catch {
+    // el sitio no deja bajarla desde el navegador: probamos con el servidor
   }
+
+  // 2) Nuestro servidor la trae del otro lado (y saca la imagen de páginas como Pinterest)
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(
+      `/api/fetch-image?url=${encodeURIComponent(u)}`,
+      { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+      30000
+    );
+  } catch {
+    throw new Error('The site took too long to respond. Try again or download the image and upload it.');
+  }
+
+  if (!res.ok) {
+    let message = "Couldn't fetch the image from that link. Download it and upload it manually.";
+    try {
+      const body = await res.json();
+      if (body?.error) message = body.error;
+    } catch {
+      // respuesta sin JSON
+    }
+    throw new Error(message);
+  }
+
   const blob = await res.blob();
-  if (!blob.type.startsWith('image/')) {
-    throw new Error("That link isn't an image.");
-  }
-  return new File([blob], `${name}.${extFor(blob.type)}`, { type: blob.type });
+  if (!blob.type.startsWith('image/')) throw new Error("That link isn't an image.");
+  return toFile(blob, name);
 };
 
 /** Saca la URL de una imagen arrastrada desde otra pestaña o desde la galería. */
