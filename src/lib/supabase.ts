@@ -11,6 +11,9 @@ export const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_Ox8TG0tsH0q81K9aRHLTIQ_7
 
 export const GALLERY_BUCKET = 'gallery';
 
+// ID público del cliente OAuth de Google ("Detolab Web"). No es secreto.
+export const GOOGLE_CLIENT_ID = '943130367208-ac4o2pcmv7rqsep3v09rm7rbv8abvg92.apps.googleusercontent.com';
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     persistSession: true,

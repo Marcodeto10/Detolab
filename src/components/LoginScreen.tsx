@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Logo } from './Icons';
 import { useAuth } from '../lib/auth';
+import { GOOGLE_CLIENT_ID } from '../lib/supabase';
+import { loadGoogleIdentity, makeNonce } from '../lib/googleIdentity';
 
 const LOGIN_BG = 'https://i.pinimg.com/1200x/34/69/9e/34699eca0b59961a9490f5279181afe4.jpg';
 
@@ -29,11 +31,62 @@ const GoogleIcon = () => (
 );
 
 export const LoginScreen: React.FC = () => {
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, signInWithGoogleToken } = useAuth();
+  const buttonRef = useRef<HTMLDivElement>(null);
+  const [buttonReady, setButtonReady] = useState(false);
+  const [buttonFailed, setButtonFailed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const start = async () => {
+  // Botón oficial de Google: el aviso de Google muestra la dirección de Detolab
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        await loadGoogleIdentity();
+        const nonce = await makeNonce();
+        const container = buttonRef.current;
+        if (cancelled || !container) return;
+
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          nonce: nonce.hashed,
+          ux_mode: 'popup',
+          callback: async (response: { credential?: string }) => {
+            if (!response.credential) return;
+            setBusy(true);
+            setError(null);
+            try {
+              await signInWithGoogleToken(response.credential, nonce.raw);
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "Couldn't sign in with Google.");
+              setBusy(false);
+            }
+          },
+        });
+
+        window.google.accounts.id.renderButton(container, {
+          type: 'standard',
+          theme: 'filled_black',
+          size: 'large',
+          shape: 'pill',
+          text: 'continue_with',
+          logo_alignment: 'center',
+          locale: 'en',
+          width: Math.min(400, Math.max(240, container.offsetWidth)),
+        });
+        setButtonReady(true);
+      } catch {
+        if (!cancelled) setButtonFailed(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [signInWithGoogleToken]);
+
+  // Respaldo: login por redirección si el botón de Google no pudo cargar
+  const redirectSignIn = async () => {
     setBusy(true);
     setError(null);
     try {
@@ -60,14 +113,27 @@ export const LoginScreen: React.FC = () => {
           </p>
         )}
 
-        <button
-          onClick={start}
-          disabled={busy}
-          className="w-full h-12 rounded-full bg-white text-black text-[15px] font-semibold inline-flex items-center justify-center gap-3 hover:bg-white/90 transition-colors disabled:opacity-60"
-        >
-          {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <GoogleIcon />}
-          Continue with Google
-        </button>
+        <div className="relative min-h-11 flex justify-center">
+          {busy ? (
+            <div className="h-11 flex items-center gap-2 text-[14px] text-white/80">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Signing in…
+            </div>
+          ) : buttonFailed ? (
+            <button
+              onClick={redirectSignIn}
+              className="w-full h-12 rounded-full bg-white text-black text-[15px] font-semibold inline-flex items-center justify-center gap-3 hover:bg-white/90 transition-colors"
+            >
+              <GoogleIcon />
+              Continue with Google
+            </button>
+          ) : (
+            <>
+              {!buttonReady && <div className="absolute inset-0 h-11 rounded-full bg-white/10 animate-pulse" />}
+              <div ref={buttonRef} className="w-full flex justify-center" />
+            </>
+          )}
+        </div>
 
         <p className="text-[12px] text-white/55 text-center leading-relaxed">
           We only use your name, email and photo to identify your account.
