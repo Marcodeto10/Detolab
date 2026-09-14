@@ -82,7 +82,7 @@ export const Home: React.FC<HomeProps> = ({ onOpenTool, onOpenGallery, onOpenIma
                   <div aria-hidden className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                   <div className="tv-parallax-fg absolute inset-x-0 bottom-0 p-3 sm:p-4 lg:p-5">
                     <p className="text-[18px] sm:text-[24px] lg:text-[30px] font-bold tracking-tight leading-none text-white truncate">{c.title}</p>
-                    <p className="hidden sm:block mt-2 text-[13px] lg:text-[14px] leading-snug text-white truncate">{c.description}</p>
+                    <p className="hidden sm:block mt-1 text-[13px] lg:text-[14px] leading-tight text-white truncate">{c.description}</p>
                   </div>
                 </>
               }
