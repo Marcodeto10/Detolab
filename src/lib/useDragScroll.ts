@@ -47,7 +47,8 @@ export const useDragScroll = <T extends HTMLElement>() => {
         el.classList.add('is-dragging');
       }
       const now = performance.now();
-      velocity = (e.clientX - lastX) / Math.max(1, now - lastTime);
+      // Velocidad en px/ms, con tope para que un tirón no mande la fila hasta el final
+      velocity = Math.max(-2.5, Math.min(2.5, (e.clientX - lastX) / Math.max(8, now - lastTime)));
       lastX = e.clientX;
       lastTime = now;
       el.scrollLeft = startScroll - dx;
@@ -59,12 +60,14 @@ export const useDragScroll = <T extends HTMLElement>() => {
       if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
       if (!moved) return;
 
-      // Inercia: sigue deslizando y frena de a poco; al final vuelve el "snap" a la foto más cercana
-      let v = velocity * 16;
+      // Inercia: sigue deslizando y frena de a poco; al final vuelve el "snap" a la foto más cercana.
+      // Si soltaste quieto (sin mover en el último momento), no hay inercia.
+      let v = performance.now() - lastTime > 80 ? 0 : velocity * 16;
       const step = () => {
+        const prev = el.scrollLeft;
         v *= 0.92;
         el.scrollLeft -= v;
-        if (Math.abs(v) > 0.5) glide = requestAnimationFrame(step);
+        if (Math.abs(v) > 0.5 && el.scrollLeft !== prev) glide = requestAnimationFrame(step);
         else el.classList.remove('is-dragging');
       };
       glide = requestAnimationFrame(step);
