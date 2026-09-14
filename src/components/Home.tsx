@@ -1,8 +1,8 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
-import { TOOLS, TOOL_ORDER, GALLERY_COVER, type ToolId } from '../lib/tools';
+import { TOOLS, TOOL_ORDER, GALLERY_COVER, GALLERY_VIDEO, type ToolId } from '../lib/tools';
 import { useGallery } from '../lib/galleryContext';
-import { CoverImage } from './ui/controls';
+import { CoverImage, CoverVideo } from './ui/controls';
 import { TvCard } from './ui/TvCard';
 
 interface HomeProps {
@@ -22,6 +22,15 @@ const TAGLINES: Record<ToolId | 'gallery', string> = {
   gallery: 'All your images, in folders.',
 };
 
+interface HomeCard {
+  key: string;
+  title: string;
+  description: string;
+  cover: string;
+  video?: string;
+  onClick: () => void;
+}
+
 const ShelfHeader: React.FC<{ title: string; action?: React.ReactNode }> = ({ title, action }) => (
   <div className="flex items-baseline justify-between gap-4">
     <h2 className="text-[22px] font-bold tracking-tight">{title}</h2>
@@ -34,7 +43,7 @@ export const Home: React.FC<HomeProps> = ({ onOpenTool, onOpenGallery, onOpenIma
   const recent = images.slice(0, 16);
 
   // Las 5 herramientas + la galería: 3 y 3
-  const cards = [
+  const cards: HomeCard[] = [
     ...TOOL_ORDER.map((id) => ({
       key: id,
       title: TOOLS[id].name,
@@ -47,6 +56,7 @@ export const Home: React.FC<HomeProps> = ({ onOpenTool, onOpenGallery, onOpenIma
       title: 'Gallery',
       description: TAGLINES.gallery,
       cover: GALLERY_COVER,
+      video: GALLERY_VIDEO,
       onClick: onOpenGallery,
     },
   ];
@@ -64,7 +74,11 @@ export const Home: React.FC<HomeProps> = ({ onOpenTool, onOpenGallery, onOpenIma
               artClassName="aspect-[3/4] rounded-2xl"
               art={
                 <>
-                  <CoverImage src={c.cover} alt="" className="tv-parallax-bg absolute inset-0 w-full h-full object-cover" />
+                  {c.video ? (
+                    <CoverVideo src={c.video} poster={c.cover} className="tv-parallax-bg absolute inset-0 w-full h-full object-cover" />
+                  ) : (
+                    <CoverImage src={c.cover} alt="" className="tv-parallax-bg absolute inset-0 w-full h-full object-cover" />
+                  )}
                   <div aria-hidden className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                   <div className="tv-parallax-fg absolute inset-x-0 bottom-0 p-3 sm:p-4 lg:p-5">
                     <p className="text-[18px] sm:text-[24px] lg:text-[30px] font-bold tracking-tight leading-none text-white truncate">{c.title}</p>

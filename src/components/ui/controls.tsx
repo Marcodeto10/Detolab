@@ -233,3 +233,24 @@ export const CoverImage: React.FC<{ src: string; alt: string; className?: string
   }
   return <img src={src} alt={alt} onError={() => setFailed(true)} referrerPolicy="no-referrer" className={className} />;
 };
+
+/** Video de portada en loop y sin sonido. Si no carga, o el sistema pide menos movimiento, queda la foto. */
+export const CoverVideo: React.FC<{ src: string; poster: string; className?: string }> = ({ src, poster, className }) => {
+  const [failed, setFailed] = useState(false);
+  const still = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  if (failed || still) return <CoverImage src={poster} alt="" className={className} />;
+  return (
+    <video
+      src={src}
+      poster={poster}
+      autoPlay
+      muted
+      loop
+      playsInline
+      preload="auto"
+      aria-hidden
+      onError={() => setFailed(true)}
+      className={className}
+    />
+  );
+};

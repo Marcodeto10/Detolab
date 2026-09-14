@@ -161,7 +161,9 @@ export const TOOLS: Record<ToolId, ToolSpec> = {
 
 export const TOOL_ORDER: ToolId[] = ['create', 'edit', 'mockup', 'product', 'bulk'];
 
-export const GALLERY_COVER = 'https://i.pinimg.com/1200x/5c/85/8e/5c858e29b3be3e26b63a014e5d4664e0.jpg';
+// Portada de la galería: video en loop (H.264, anda en todos los navegadores) y su foto mientras carga
+export const GALLERY_COVER = 'https://i.pinimg.com/736x/c2/58/5a/c2585aa5a87c360839c3440fc737e6d8.jpg';
+export const GALLERY_VIDEO = 'https://v1.pinimg.com/videos/iht/expMp4/c4/16/ea/c416eae993cb5fe5c8d426e18484086a_720w.mp4';
 
 /** Atajos para mandar una imagen ya generada a otra herramienta. */
 export const USE_AS: { label: string; tool: ToolId; slot: SlotId }[] = [
