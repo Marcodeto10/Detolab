@@ -9,7 +9,10 @@
 // - Solo http/https y nunca direcciones internas, tampoco vía redirecciones.
 // - Límite de tamaño y de tiempo.
 
-import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '../src/lib/config';
+// Mismos datos públicos que src/lib/config.ts. Van copiados porque en Vercel
+// la función corre sola y no puede importar archivos de la app.
+const SUPABASE_URL = 'https://bkqhedahpcoywvdguyry.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_Ox8TG0tsH0q81K9aRHLTIQ_7jVmITQ6';
 
 const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
 const MAX_PAGE_BYTES = 2 * 1024 * 1024;
