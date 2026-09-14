@@ -626,9 +626,9 @@ export const Studio: React.FC<StudioProps> = ({
   );
 
   return (
-    <div className="flex flex-col lg:flex-row lg:h-dvh">
+    <div className="flex flex-col lg:flex-row lg:h-[calc(100dvh-4rem)]">
       {/* Panel de controles */}
-      <aside className="lg:w-[400px] xl:w-[420px] shrink-0 flex flex-col lg:h-dvh lg:border-r border-line bg-panel">
+      <aside className="lg:w-[400px] xl:w-[420px] shrink-0 flex flex-col lg:h-[calc(100dvh-4rem)] lg:border-r border-line bg-panel">
         <div className="lg:flex-1 lg:min-h-0 lg:overflow-y-auto custom-scrollbar">
           <div className="px-4 lg:px-6 pt-4 lg:pt-6 pb-6 space-y-6">
             <div role="tablist" aria-label="Tools" className="lg:hidden grid grid-cols-5 gap-0.5 p-0.5 rounded-[10px] bg-fill">
@@ -842,7 +842,7 @@ export const Studio: React.FC<StudioProps> = ({
       {/* Resultado */}
       <section
         ref={canvasRef}
-        className={cn('flex-1 min-w-0 flex flex-col lg:h-dvh scroll-mt-14', hasCanvasContent && 'order-first lg:order-none')}
+        className={cn('flex-1 min-w-0 flex flex-col lg:h-[calc(100dvh-4rem)] scroll-mt-14', hasCanvasContent && 'order-first lg:order-none')}
       >
         {run && run.tool !== tool && (
           <div className="mx-4 mt-4 lg:mx-8 lg:mt-6 flex items-center gap-3 rounded-2xl bg-raised px-4 py-2.5 text-[13px]">
