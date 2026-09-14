@@ -12,6 +12,16 @@ interface HomeProps {
   onOpenImage: (id: string) => void;
 }
 
+// Una línea corta por card (la descripción larga queda para el Studio)
+const TAGLINES: Record<ToolId | 'gallery', string> = {
+  create: 'Any image from a prompt.',
+  edit: 'Change anything in a photo.',
+  mockup: 'Your design on a mockup.',
+  product: 'Studio shots of your product.',
+  bulk: 'One edit, many photos.',
+  gallery: 'All your images, in folders.',
+};
+
 const ShelfHeader: React.FC<{ title: string; action?: React.ReactNode }> = ({ title, action }) => (
   <div className="flex items-baseline justify-between gap-4">
     <h2 className="text-[22px] font-bold tracking-tight">{title}</h2>
@@ -28,14 +38,14 @@ export const Home: React.FC<HomeProps> = ({ onOpenTool, onOpenGallery, onOpenIma
     ...TOOL_ORDER.map((id) => ({
       key: id,
       title: TOOLS[id].name,
-      description: TOOLS[id].description,
+      description: TAGLINES[id],
       cover: TOOLS[id].cover,
       onClick: () => onOpenTool(id),
     })),
     {
       key: 'gallery',
       title: 'Gallery',
-      description: "Everything you've generated, organized in folders.",
+      description: TAGLINES.gallery,
       cover: GALLERY_COVER,
       onClick: onOpenGallery,
     },
@@ -57,8 +67,8 @@ export const Home: React.FC<HomeProps> = ({ onOpenTool, onOpenGallery, onOpenIma
                   <CoverImage src={c.cover} alt="" className="absolute inset-0 w-full h-full object-cover" />
                   <div aria-hidden className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4 lg:p-5">
-                    <p className="text-[15px] sm:text-[18px] lg:text-[22px] font-semibold tracking-tight leading-tight text-white">{c.title}</p>
-                    <p className="hidden sm:block mt-1 max-w-[38ch] text-[13px] lg:text-[14px] leading-snug text-white/70 line-clamp-2">{c.description}</p>
+                    <p className="text-[15px] sm:text-[18px] lg:text-[22px] font-semibold tracking-tight leading-tight text-white truncate">{c.title}</p>
+                    <p className="hidden sm:block mt-1 text-[13px] lg:text-[14px] leading-snug text-white truncate">{c.description}</p>
                   </div>
                 </>
               }

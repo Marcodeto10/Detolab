@@ -155,7 +155,7 @@ export const TOOLS: Record<ToolId, ToolSpec> = {
     promptPlaceholder: 'e.g. Remove the background and replace it with a white studio backdrop',
     promptRequired: true,
     folderId: 'all',
-    cover: 'https://i.pinimg.com/1200x/34/69/9e/34699eca0b59961a9490f5279181afe4.jpg',
+    cover: '/covers/bulk.jpg',
   },
 };
 
