@@ -28,6 +28,8 @@ interface HomeCard {
   title: string;
   description: string;
   cover: string;
+  /** Encuadre propio de la portada (ver tools.ts) */
+  coverStyle?: React.CSSProperties;
   video?: string;
   onClick: () => void;
 }
@@ -51,6 +53,9 @@ export const Home: React.FC<HomeProps> = ({ onOpenTool, onOpenGallery, onOpenIma
       title: TOOLS[id].name,
       description: TAGLINES[id],
       cover: TOOLS[id].cover,
+      coverStyle: TOOLS[id].coverZoom
+        ? ({ '--bg-zoom': TOOLS[id].coverZoom, transformOrigin: TOOLS[id].coverOrigin } as React.CSSProperties)
+        : undefined,
       onClick: () => onOpenTool(id),
     })),
     {
@@ -79,7 +84,7 @@ export const Home: React.FC<HomeProps> = ({ onOpenTool, onOpenGallery, onOpenIma
                   {c.video ? (
                     <CoverVideo src={c.video} poster={c.cover} className="tv-parallax-bg absolute inset-0 w-full h-full object-cover" />
                   ) : (
-                    <CoverImage src={c.cover} alt="" className="tv-parallax-bg absolute inset-0 w-full h-full object-cover" />
+                    <CoverImage src={c.cover} alt="" style={c.coverStyle} className="tv-parallax-bg absolute inset-0 w-full h-full object-cover" />
                   )}
                   <div aria-hidden className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                   <div className="tv-parallax-fg absolute inset-x-0 bottom-0 p-3 sm:p-4 lg:p-5">

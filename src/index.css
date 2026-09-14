@@ -126,7 +126,8 @@
 /* Capas con profundidad: la foto se corre para un lado y el texto para el otro */
 .tv-parallax-bg {
   --bg-scale: 1.04;
-  transform: translate(calc(var(--px) * -16px), calc(var(--py) * -16px)) scale(var(--bg-scale));
+  /* --bg-zoom: encuadre propio de cada portada; --bg-scale: el zoom suave del hover */
+  transform: translate(calc(var(--px) * -16px), calc(var(--py) * -16px)) scale(calc(var(--bg-zoom, 1) * var(--bg-scale)));
   transition: transform 500ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 

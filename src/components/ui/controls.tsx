@@ -226,12 +226,12 @@ export const Menu: React.FC<{ trigger: (open: boolean) => React.ReactNode; items
 };
 
 /** Imagen de portada que no se rompe si el link externo deja de existir. */
-export const CoverImage: React.FC<{ src: string; alt: string; className?: string }> = ({ src, alt, className }) => {
+export const CoverImage: React.FC<{ src: string; alt: string; className?: string; style?: React.CSSProperties }> = ({ src, alt, className, style }) => {
   const [failed, setFailed] = useState(false);
   if (failed) {
-    return <div aria-hidden className={cn('bg-gradient-to-br from-[#3a3a3c] via-[#1c1c1e] to-black', className)} />;
+    return <div aria-hidden className={cn('bg-gradient-to-br from-[#3a3a3c] via-[#1c1c1e] to-black', className)} style={style} />;
   }
-  return <img src={src} alt={alt} onError={() => setFailed(true)} referrerPolicy="no-referrer" className={className} />;
+  return <img src={src} alt={alt} onError={() => setFailed(true)} referrerPolicy="no-referrer" className={className} style={style} />;
 };
 
 /** Video de portada en loop y sin sonido. Si no carga, o el sistema pide menos movimiento, queda la foto. */

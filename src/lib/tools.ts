@@ -46,6 +46,9 @@ export interface ToolSpec {
   defaultPrompt?: string;
   folderId: string;
   cover: string;
+  /** Encuadre de la portada: cuánto se agranda y desde qué punto (CSS transform-origin) */
+  coverZoom?: number;
+  coverOrigin?: string;
 }
 
 export const MOCKUP_PROMPT = "Replace the existing content inside the mockup with the uploaded design. The design must completely fill the intended mockup frame or surface area. Accurately match the perspective, scale, lighting, shadows, and surface distortion of the original mockup. Remove the previous artwork and seamlessly integrate the new design so it looks naturally embedded into the mockup structure. Respect the boundaries of the frame or object and ensure the design fits precisely within it.";
@@ -126,6 +129,8 @@ export const TOOLS: Record<ToolId, ToolSpec> = {
     defaultPrompt: MOCKUP_PROMPT,
     folderId: 'mockups',
     cover: '/covers/mockup.jpg',
+    coverZoom: 1.18,
+    coverOrigin: '50% 100%',
   },
   product: {
     id: 'product',
