@@ -89,7 +89,7 @@ export const ImageSlot: React.FC<ImageSlotProps> = ({
           {spec.label}
           {spec.required && <span className="ml-0.5 text-faint">*</span>}
         </p>
-        <p className="text-[12px] text-faint truncate">{spec.hint}</p>
+        <p className="min-w-0 text-right text-[12px] leading-snug text-faint">{spec.hint}</p>
       </div>
 
       {isEmpty ? (

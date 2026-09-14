@@ -386,7 +386,7 @@ export const AccountView: React.FC<AccountViewProps> = ({ onKeyRemoved }) => {
                     <thead>
                       <tr className="text-left text-[12px] text-faint">
                         <th className="font-medium pb-2 pr-4">Model</th>
-                        <th className="font-medium pb-2 pr-4 w-[40%]">Images</th>
+                        <th className="font-medium pb-2 pr-4 text-right sm:text-left sm:w-[40%]">Images</th>
                         <th className="font-medium pb-2 pr-4 text-right">Requests</th>
                         <th className="font-medium pb-2 text-right">Tokens</th>
                       </tr>
@@ -396,11 +396,11 @@ export const AccountView: React.FC<AccountViewProps> = ({ onKeyRemoved }) => {
                         <tr key={m.id} className="border-t border-line">
                           <td className="py-2.5 pr-4">
                             <p className="text-ink">{m.label}</p>
-                            <p className="text-[11px] text-faint font-mono">{m.id}</p>
+                            <p className="hidden sm:block text-[11px] text-faint font-mono">{m.id}</p>
                           </td>
                           <td className="py-2.5 pr-4">
-                            <div className="flex items-center gap-2.5">
-                              <div className="flex-1 h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                            <div className="flex items-center justify-end sm:justify-start gap-2.5">
+                              <div className="hidden sm:block flex-1 h-2 rounded-full bg-white/[0.06] overflow-hidden">
                                 <div className="h-full rounded-full" style={{ width: `${(m.images / maxModelImages) * 100}%`, background: SERIES }} />
                               </div>
                               <span className="w-10 text-right text-ink">{grouped(m.images)}</span>
