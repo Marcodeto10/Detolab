@@ -62,7 +62,7 @@ export const Home: React.FC<HomeProps> = ({ onOpenTool, onOpenGallery, onOpenIma
   ];
 
   return (
-    <div className="max-w-[1040px] mx-auto px-4 pt-6 pb-10 lg:px-10 lg:pt-10 space-y-10 lg:space-y-12">
+    <div className="max-w-[1280px] mx-auto px-4 pt-6 pb-10 lg:px-10 lg:pt-10 space-y-10 lg:space-y-12">
       <section>
         <h1 className="sr-only">Detolab</h1>
 
@@ -71,7 +71,7 @@ export const Home: React.FC<HomeProps> = ({ onOpenTool, onOpenGallery, onOpenIma
             <TvCard
               key={c.key}
               onClick={c.onClick}
-              artClassName="aspect-[3/4] rounded-2xl"
+              artClassName="aspect-[4/3] rounded-2xl"
               art={
                 <>
                   {c.video ? (
