@@ -52,11 +52,17 @@ export const Home: React.FC<HomeProps> = ({ onOpenTool, onOpenGallery, onOpenIma
               key={c.key}
               onClick={c.onClick}
               artClassName="aspect-[16/10] rounded-2xl"
-              art={<CoverImage src={c.cover} alt="" className="absolute inset-0 w-full h-full object-cover" />}
-            >
-              <p className="mt-3 text-[15px] lg:text-[17px] font-semibold text-ink">{c.title}</p>
-              <p className="mt-0.5 text-[12px] lg:text-[14px] leading-snug text-muted line-clamp-2">{c.description}</p>
-            </TvCard>
+              art={
+                <>
+                  <CoverImage src={c.cover} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  <div aria-hidden className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4 lg:p-5">
+                    <p className="text-[15px] sm:text-[18px] lg:text-[22px] font-semibold tracking-tight leading-tight text-white">{c.title}</p>
+                    <p className="hidden sm:block mt-1 max-w-[38ch] text-[13px] lg:text-[14px] leading-snug text-white/70 line-clamp-2">{c.description}</p>
+                  </div>
+                </>
+              }
+            />
           ))}
         </div>
       </section>
