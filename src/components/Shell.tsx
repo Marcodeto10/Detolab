@@ -161,21 +161,7 @@ export const Shell: React.FC<ShellProps> = ({
               </div>
             </nav>
 
-            <div className="p-3 space-y-0.5">
-              <button
-                onClick={onOpenAccount}
-                aria-current={view === 'account' ? 'page' : undefined}
-                className={cn(
-                  'w-full flex items-center gap-3 p-2 rounded-xl text-left transition-colors',
-                  view === 'account' ? 'bg-white/[0.1]' : 'hover:bg-white/[0.05]'
-                )}
-              >
-                <Avatar src={avatar} name={userName} className="w-8 h-8" />
-                <span className="flex-1 min-w-0">
-                  <span className="block text-[14px] font-medium truncate">{userName || 'Your account'}</span>
-                  <span className="block text-[12px] text-faint">Account & usage</span>
-                </span>
-              </button>
+            <div className="p-3">
               <SideItem icon={LogOut} label="Sign out" onClick={signOut} />
             </div>
           </aside>
