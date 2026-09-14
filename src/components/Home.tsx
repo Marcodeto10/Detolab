@@ -44,10 +44,9 @@ export const Home: React.FC<HomeProps> = ({ onOpenTool, onOpenGallery, onOpenIma
   return (
     <div className="max-w-[1600px] mx-auto px-4 pt-6 pb-10 lg:px-10 lg:pt-10 space-y-10 lg:space-y-12">
       <section>
-        <h1 className="text-4xl lg:text-5xl font-bold tracking-tight leading-none">Creative Studio</h1>
-        <p className="mt-3 text-[15px] text-muted">Pick a tool to get started.</p>
+        <h1 className="sr-only">Detolab</h1>
 
-        <div className="mt-7 grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-6 lg:gap-x-6 lg:gap-y-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-6 lg:gap-x-6 lg:gap-y-8">
           {cards.map((c) => (
             <TvCard
               key={c.key}
