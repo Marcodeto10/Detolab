@@ -56,7 +56,7 @@ const SideItem: React.FC<{ icon: React.ElementType; label: string; active?: bool
     onClick={onClick}
     aria-current={active ? 'page' : undefined}
     className={cn(
-      'w-full h-10 px-3 rounded-lg flex items-center gap-3 text-[15px] font-medium transition-colors',
+      'w-full h-9 px-3 rounded-lg flex items-center gap-3 text-[14px] font-medium transition-colors',
       active ? 'bg-white/[0.1] text-white' : 'text-ink/75 hover:text-ink hover:bg-white/[0.05]'
     )}
   >
@@ -88,17 +88,17 @@ export const Shell: React.FC<ShellProps> = ({
       <header className="sticky top-0 z-40 h-14 lg:h-16 bg-black/80 backdrop-blur-xl border-b border-white/[0.06]">
         <div className="h-full px-4 lg:px-6 flex items-center justify-between lg:grid lg:grid-cols-[1fr_auto_1fr]">
           <button onClick={() => onNavigate('home')} className="justify-self-start" aria-label="Go to home">
-            <Logo className="w-28 lg:w-36 h-auto" />
+            <Logo className="w-28 lg:w-32 h-auto" />
           </button>
 
-          <nav aria-label="Main" className="hidden lg:flex items-center gap-1 p-1 rounded-full bg-white/[0.08]">
+          <nav aria-label="Main" className="hidden lg:flex items-center gap-2 p-1.5 rounded-full bg-white/[0.08]">
             {NAV.map(({ id, label }) => (
               <button
                 key={id}
                 onClick={() => onNavigate(id)}
                 aria-current={view === id ? 'page' : undefined}
                 className={cn(
-                  'h-10 px-7 rounded-full text-[15px] font-semibold transition-colors inline-flex items-center gap-1.5',
+                  'h-8 px-6 rounded-full text-[14px] font-semibold transition-colors inline-flex items-center gap-1.5',
                   view === id ? 'bg-white text-black' : 'text-ink/80 hover:text-ink hover:bg-white/[0.1]'
                 )}
               >
@@ -115,19 +115,19 @@ export const Shell: React.FC<ShellProps> = ({
             aria-label="Account and usage"
             aria-current={view === 'account' ? 'page' : undefined}
             className={cn(
-              'justify-self-end flex items-center gap-2.5 h-10 p-1 lg:pr-4 rounded-full transition-colors',
+              'justify-self-end flex items-center gap-2.5 h-9 p-1 lg:pr-3.5 rounded-full transition-colors',
               view === 'account' ? 'bg-white/[0.1]' : 'hover:bg-white/[0.08]'
             )}
           >
-            <Avatar src={avatar} name={userName} className="w-8 h-8" />
-            <span className="hidden lg:block text-[15px] font-medium max-w-[180px] truncate">{userName || 'Account'}</span>
+            <Avatar src={avatar} name={userName} className="w-7 h-7" />
+            <span className="hidden lg:block text-[14px] font-medium max-w-[160px] truncate">{userName || 'Account'}</span>
           </button>
         </div>
       </header>
 
       <div className="lg:flex">
         {showTools && (
-          <aside className="hidden lg:flex w-60 shrink-0 sticky top-16 h-[calc(100dvh-4rem)] flex-col bg-panel border-r border-line">
+          <aside className="hidden lg:flex w-60 shrink-0 sticky top-16 h-[calc(100dvh-4rem)] flex-col bg-canvas border-r border-line">
             <nav aria-label="Tools" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 pt-6">
               <SideHeading>Tools</SideHeading>
               <div className="space-y-0.5">
