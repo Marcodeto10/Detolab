@@ -141,7 +141,7 @@ export const TOOLS: Record<ToolId, ToolSpec> = {
     promptRequired: false,
     defaultPrompt: PRODUCT_PROMPT,
     folderId: 'products',
-    cover: 'https://i.pinimg.com/736x/ab/0e/1e/ab0e1efcad96fcb933ea954784b87a4b.jpg',
+    cover: 'https://i.pinimg.com/1200x/6b/c6/5d/6bc65d55ef013c28a09a3f969263afb9.jpg',
   },
   bulk: {
     id: 'bulk',

@@ -9,6 +9,10 @@ export type ModelType = 'pro' | 'flash-v2' | 'flash-lite' | 'legacy';
 export interface ModelSpec {
   id: string;
   label: string;
+  /** Etiqueta corta: para qué conviene */
+  badge: string;
+  /** Una línea con la diferencia frente a los otros */
+  note: string;
   /** Ratios extendidos (panorámicos / tiras verticales) */
   wideRatios: boolean;
   /** Permite 512px como salida */
@@ -21,6 +25,8 @@ export const MODELS: Record<ModelType, ModelSpec> = {
   pro: {
     id: 'gemini-3-pro-image',
     label: 'Nano Banana Pro',
+    badge: 'Best quality',
+    note: 'Most detail and the best text in images. Slower.',
     wideRatios: false,
     allowsSmall: false,
     supportsSearch: true,
@@ -28,6 +34,8 @@ export const MODELS: Record<ModelType, ModelSpec> = {
   'flash-v2': {
     id: 'gemini-3.1-flash-image',
     label: 'Nano Banana 2',
+    badge: 'Recommended',
+    note: 'Great quality and fast. Good for almost everything.',
     wideRatios: true,
     allowsSmall: true,
     supportsSearch: true,
@@ -35,6 +43,8 @@ export const MODELS: Record<ModelType, ModelSpec> = {
   'flash-lite': {
     id: 'gemini-3.1-flash-lite-image',
     label: 'Nano Banana 2 Lite',
+    badge: 'Fastest',
+    note: 'Quickest results at a lower cost. Good for drafts.',
     wideRatios: true,
     allowsSmall: true,
     supportsSearch: false,
@@ -42,6 +52,8 @@ export const MODELS: Record<ModelType, ModelSpec> = {
   legacy: {
     id: 'gemini-2.5-flash-image',
     label: 'Nano Banana (legacy)',
+    badge: 'Older',
+    note: 'Previous generation. Use it if you liked its look.',
     wideRatios: false,
     allowsSmall: false,
     supportsSearch: false,

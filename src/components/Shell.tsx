@@ -1,7 +1,8 @@
 import React from 'react';
-import { Frame, House, Images, Layers, Package, Pencil, Sparkles } from 'lucide-react';
+import { Frame, House, Images, Layers, LogOut, Package, Pencil, Sparkles } from 'lucide-react';
 import { Logo } from './Icons';
 import { TOOLS, TOOL_ORDER, type ToolId } from '../lib/tools';
+import { useSignOut } from '../lib/useSignOut';
 import { cn } from '../lib/utils';
 
 export type View = 'home' | 'studio' | 'gallery' | 'account';
@@ -46,10 +47,11 @@ const Avatar: React.FC<{ src: string; name: string; className?: string }> = ({ s
     </span>
   );
 
-const SideItem: React.FC<{ icon: React.ElementType; label: string; active?: boolean; onClick: () => void }> = ({
+const SideItem: React.FC<{ icon: React.ElementType; label: string; active?: boolean; badge?: number; onClick: () => void }> = ({
   icon: Icon,
   label,
   active,
+  badge,
   onClick,
 }) => (
   <button
@@ -62,6 +64,7 @@ const SideItem: React.FC<{ icon: React.ElementType; label: string; active?: bool
   >
     <Icon className="w-[18px] h-[18px] shrink-0" />
     <span className="truncate">{label}</span>
+    {!!badge && <span className="ml-auto text-[12px] text-faint tabular-nums">{badge}</span>}
   </button>
 );
 
@@ -80,12 +83,18 @@ export const Shell: React.FC<ShellProps> = ({
   galleryCount,
   children,
 }) => {
-  // La barra superior está siempre; en Studio (compu) se suma la barra lateral con las herramientas
-  const showTools = view === 'studio';
+  const signOut = useSignOut();
+  // La barra superior está siempre; dentro de las secciones (compu) se suma la barra lateral
+  const inSection = view !== 'home';
 
   return (
     <div className="min-h-dvh bg-canvas text-ink">
-      <header className="sticky top-0 z-40 h-14 lg:h-16 bg-black/80 backdrop-blur-xl border-b border-white/[0.06]">
+      <header
+        className={cn(
+          'sticky top-0 z-40 h-14 lg:h-16 bg-black/80 backdrop-blur-xl border-b border-white/[0.06]',
+          inSection && 'lg:border-b-2 lg:border-line'
+        )}
+      >
         <div className="h-full px-4 lg:px-6 flex items-center justify-between lg:grid lg:grid-cols-[1fr_auto_1fr]">
           <button onClick={() => onNavigate('home')} className="justify-self-start" aria-label="Go to home">
             <Logo className="w-28 lg:w-32 h-auto" />
@@ -126,22 +135,53 @@ export const Shell: React.FC<ShellProps> = ({
       </header>
 
       <div className="lg:flex">
-        {showTools && (
-          <aside className="hidden lg:flex w-60 shrink-0 sticky top-16 h-[calc(100dvh-4rem)] flex-col bg-canvas border-r border-line">
-            <nav aria-label="Tools" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 pt-6">
-              <SideHeading>Tools</SideHeading>
-              <div className="space-y-0.5">
-                {TOOL_ORDER.map((id) => (
-                  <SideItem
-                    key={id}
-                    icon={TOOL_ICONS[id]}
-                    label={TOOLS[id].name}
-                    active={tool === id}
-                    onClick={() => onOpenTool(id)}
-                  />
-                ))}
+        {inSection && (
+          <aside className="hidden lg:flex w-60 shrink-0 self-start sticky top-16 h-[calc(100dvh-4rem)] flex-col bg-canvas border-r-2 border-line">
+            <nav aria-label="Sections" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 pt-6 space-y-6">
+              <div>
+                <SideHeading>Tools</SideHeading>
+                <div className="space-y-0.5">
+                  {TOOL_ORDER.map((id) => (
+                    <SideItem
+                      key={id}
+                      icon={TOOL_ICONS[id]}
+                      label={TOOLS[id].name}
+                      active={view === 'studio' && tool === id}
+                      onClick={() => onOpenTool(id)}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <SideHeading>Library</SideHeading>
+                <SideItem
+                  icon={Images}
+                  label="Gallery"
+                  active={view === 'gallery'}
+                  badge={galleryCount}
+                  onClick={() => onNavigate('gallery')}
+                />
               </div>
             </nav>
+
+            <div className="p-3 space-y-0.5">
+              <button
+                onClick={onOpenAccount}
+                aria-current={view === 'account' ? 'page' : undefined}
+                className={cn(
+                  'w-full flex items-center gap-3 p-2 rounded-xl text-left transition-colors',
+                  view === 'account' ? 'bg-white/[0.1]' : 'hover:bg-white/[0.05]'
+                )}
+              >
+                <Avatar src={avatar} name={userName} className="w-8 h-8" />
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[14px] font-medium truncate">{userName || 'Your account'}</span>
+                  <span className="block text-[12px] text-faint">Account & usage</span>
+                </span>
+              </button>
+              <SideItem icon={LogOut} label="Sign out" onClick={signOut} />
+            </div>
           </aside>
         )}
 

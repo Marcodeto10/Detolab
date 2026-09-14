@@ -55,7 +55,8 @@ import {
   saveSettings,
   type StudioSettings,
 } from '../../lib/settings';
-import { MODELS, MODEL_ORDER, TEXT_MODEL, getModelId, ratiosFor, sizesFor, supportsSearch, type ModelType } from '../../lib/models';
+import { MODELS, TEXT_MODEL, getModelId, ratiosFor, sizesFor, supportsSearch } from '../../lib/models';
+import { ModelPicker } from './ModelPicker';
 import { logUsage } from '../../lib/usage';
 import { useGallery } from '../../lib/galleryContext';
 import { useToast } from '../ui/Toast';
@@ -628,7 +629,7 @@ export const Studio: React.FC<StudioProps> = ({
   return (
     <div className="flex flex-col lg:flex-row lg:h-[calc(100dvh-4rem)]">
       {/* Panel de controles */}
-      <aside className="lg:w-[400px] xl:w-[420px] shrink-0 flex flex-col lg:h-[calc(100dvh-4rem)] lg:border-r border-line bg-canvas">
+      <aside className="lg:w-[400px] xl:w-[420px] shrink-0 flex flex-col lg:h-[calc(100dvh-4rem)] lg:border-r-2 border-line bg-canvas">
         <div className="lg:flex-1 lg:min-h-0 lg:overflow-y-auto custom-scrollbar">
           <div className="px-4 lg:px-6 pt-4 lg:pt-6 pb-6 space-y-6">
             <div role="tablist" aria-label="Tools" className="lg:hidden grid grid-cols-5 gap-0.5 p-0.5 rounded-[10px] bg-fill">
@@ -741,12 +742,7 @@ export const Studio: React.FC<StudioProps> = ({
             <div className="space-y-4">
               <div>
                 <Label hint={<span className="font-mono">{model.id}</span>}>Model</Label>
-                <Select
-                  aria-label="Model"
-                  value={settings.modelType}
-                  onChange={(e) => updateSettings({ modelType: e.target.value as ModelType })}
-                  options={MODEL_ORDER.map((m) => ({ value: m, label: MODELS[m].label }))}
-                />
+                <ModelPicker value={settings.modelType} onChange={(m) => updateSettings({ modelType: m })} />
               </div>
 
               <div className="grid grid-cols-2 gap-3">

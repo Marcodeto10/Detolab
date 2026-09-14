@@ -6,6 +6,7 @@ import { fetchUsage, type UsageRow } from '../lib/usage';
 import { formatBytes } from '../lib/gallery';
 import { MODELS, MODEL_ORDER, TEXT_MODEL } from '../lib/models';
 import { getApiKey, setApiKey } from '../lib/settings';
+import { useSignOut } from '../lib/useSignOut';
 import { friendlyError, isInvalidKeyError, validateApiKey } from '../lib/generate';
 import { Button, Segmented } from './ui/controls';
 import { useDialog } from './ui/Dialog';
@@ -126,7 +127,7 @@ interface AccountViewProps {
 }
 
 export const AccountView: React.FC<AccountViewProps> = ({ onKeyRemoved }) => {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const { images, usedBytes } = useGallery();
   const { confirm } = useDialog();
   const toast = useToast();
@@ -230,17 +231,7 @@ export const AccountView: React.FC<AccountViewProps> = ({ onKeyRemoved }) => {
     onKeyRemoved();
   };
 
-  const handleSignOut = async () => {
-    const ok = await confirm({
-      title: 'Sign out',
-      message: 'Your images stay in your account. The API key is removed from this browser.',
-      confirmLabel: 'Sign out',
-      danger: true,
-    });
-    if (!ok) return;
-    setApiKey(null);
-    await signOut();
-  };
+  const handleSignOut = useSignOut();
 
   return (
     <div className="max-w-[1100px] mx-auto px-4 py-6 lg:px-10 lg:py-10 space-y-10">
