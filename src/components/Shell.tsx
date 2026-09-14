@@ -160,7 +160,7 @@ export const Shell: React.FC<ShellProps> = ({
                   onClick={() => onNavigate(id)}
                   aria-current={view === id ? 'page' : undefined}
                   className={cn(
-                    'h-8 px-4 rounded-full text-[14px] font-semibold transition-colors inline-flex items-center gap-1.5',
+                    'h-8 px-6 rounded-full text-[14px] font-semibold transition-colors inline-flex items-center gap-1.5',
                     view === id ? 'bg-white text-black' : 'text-ink/80 hover:text-ink hover:bg-white/[0.1]'
                   )}
                 >
