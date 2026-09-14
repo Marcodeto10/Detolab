@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { Frame, House, Images, Layers, LogOut, Package, Pencil, Sparkles } from 'lucide-react';
 import { Logo } from './Icons';
 import { TOOLS, TOOL_ORDER, type ToolId } from '../lib/tools';
@@ -12,6 +13,9 @@ const NAV: { id: View; label: string; icon: React.ElementType }[] = [
   { id: 'studio', label: 'Studio', icon: Sparkles },
   { id: 'gallery', label: 'Gallery', icon: Images },
 ];
+
+// Resorte corto para los fondos que se deslizan entre botones
+const SLIDE = { type: 'spring', stiffness: 520, damping: 42, mass: 0.8 } as const;
 
 const TOOL_ICONS: Record<ToolId, React.ElementType> = {
   create: Sparkles,
@@ -58,13 +62,14 @@ const SideItem: React.FC<{ icon: React.ElementType; label: string; active?: bool
     onClick={onClick}
     aria-current={active ? 'page' : undefined}
     className={cn(
-      'w-full h-9 px-3 rounded-lg flex items-center gap-3 text-[14px] font-medium transition-colors',
-      active ? 'bg-white/[0.1] text-white' : 'text-ink/75 hover:text-ink hover:bg-white/[0.05]'
+      'group relative w-full h-9 px-3 rounded-lg flex items-center gap-3 text-[14px] font-medium transition-[color,background-color,transform] duration-200 active:scale-[0.98]',
+      active ? 'text-white' : 'text-ink/75 hover:text-ink hover:bg-white/[0.05]'
     )}
   >
-    <Icon className="w-[18px] h-[18px] shrink-0" />
-    <span className="truncate">{label}</span>
-    {!!badge && <span className="ml-auto text-[12px] text-faint tabular-nums">{badge}</span>}
+    {active && <motion.span layoutId="side-active" aria-hidden className="absolute inset-0 rounded-lg bg-white/[0.1]" transition={SLIDE} />}
+    <Icon className="relative w-[18px] h-[18px] shrink-0 transition-transform duration-200 group-hover:scale-110" />
+    <span className="relative truncate">{label}</span>
+    {!!badge && <span className="relative ml-auto text-[12px] text-faint tabular-nums">{badge}</span>}
   </button>
 );
 
@@ -92,7 +97,11 @@ export const Shell: React.FC<ShellProps> = ({
       {/* Una sola barra superior, idéntica en todas las pantallas */}
       <header className="sticky top-0 z-40 h-14 lg:h-16 bg-black/80 backdrop-blur-xl border-b lg:border-b-2 border-line">
         <div className="h-full px-4 lg:px-6 flex items-center justify-between lg:grid lg:grid-cols-[1fr_auto_1fr]">
-          <button onClick={() => onNavigate('home')} className="justify-self-start" aria-label="Go to home">
+          <button
+            onClick={() => onNavigate('home')}
+            className="justify-self-start transition-[opacity,transform] duration-200 hover:opacity-80 active:scale-[0.97]"
+            aria-label="Go to home"
+          >
             <Logo className="w-28 lg:w-32 h-auto" />
           </button>
 
@@ -103,13 +112,16 @@ export const Shell: React.FC<ShellProps> = ({
                 onClick={() => onNavigate(id)}
                 aria-current={view === id ? 'page' : undefined}
                 className={cn(
-                  'h-8 px-6 rounded-full text-[14px] font-semibold transition-colors inline-flex items-center gap-1.5',
-                  view === id ? 'bg-white text-black' : 'text-ink/80 hover:text-ink hover:bg-white/[0.1]'
+                  'relative h-8 px-6 rounded-full text-[14px] font-semibold inline-flex items-center gap-1.5 transition-[color,background-color,transform] duration-200 active:scale-[0.96]',
+                  view === id ? 'text-black' : 'text-ink/80 hover:text-ink hover:bg-white/[0.1]'
                 )}
               >
-                {label}
+                {view === id && (
+                  <motion.span layoutId="top-nav-pill" aria-hidden className="absolute inset-0 rounded-full bg-white" transition={SLIDE} />
+                )}
+                <span className="relative">{label}</span>
                 {id === 'gallery' && galleryCount > 0 && (
-                  <span className={cn('text-[12px] tabular-nums', view === id ? 'text-black/50' : 'text-faint')}>{galleryCount}</span>
+                  <span className={cn('relative text-[12px] tabular-nums', view === id ? 'text-black/50' : 'text-faint')}>{galleryCount}</span>
                 )}
               </button>
             ))}
@@ -120,7 +132,7 @@ export const Shell: React.FC<ShellProps> = ({
             aria-label="Account and usage"
             aria-current={view === 'account' ? 'page' : undefined}
             className={cn(
-              'justify-self-end flex items-center gap-2.5 h-9 p-1 lg:pr-3.5 rounded-full transition-colors',
+              'justify-self-end flex items-center gap-2.5 h-9 p-1 lg:pr-3.5 rounded-full transition-[background-color,transform] duration-200 active:scale-[0.97]',
               view === 'account' ? 'bg-white/[0.1]' : 'hover:bg-white/[0.08]'
             )}
           >
@@ -181,7 +193,7 @@ export const Shell: React.FC<ShellProps> = ({
             onClick={() => onNavigate(id)}
             aria-current={view === id ? 'page' : undefined}
             className={cn(
-              'h-16 flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors',
+              'h-16 flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition-[color,transform] duration-200 active:scale-95',
               view === id ? 'text-white' : 'text-faint'
             )}
           >

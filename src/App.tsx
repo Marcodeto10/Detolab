@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { MotionConfig } from 'motion/react';
 import { Shell, type View } from './components/Shell';
 import { Home } from './components/Home';
 import { Studio, type StudioRequest } from './components/studio/Studio';
@@ -121,12 +122,14 @@ const AuthGate: React.FC = () => {
 
 export default function App() {
   return (
-    <ToastProvider>
-      <DialogProvider>
-        <AuthProvider>
-          <AuthGate />
-        </AuthProvider>
-      </DialogProvider>
-    </ToastProvider>
+    <MotionConfig reducedMotion="user">
+      <ToastProvider>
+        <DialogProvider>
+          <AuthProvider>
+            <AuthGate />
+          </AuthProvider>
+        </DialogProvider>
+      </ToastProvider>
+    </MotionConfig>
   );
 }

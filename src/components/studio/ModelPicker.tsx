@@ -68,7 +68,7 @@ export const ModelPicker: React.FC<{ value: ModelType; onChange: (m: ModelType) 
       </button>
       <ChevronDown
         className={cn(
-          'pointer-events-none absolute right-3 top-5 -translate-y-1/2 w-4 h-4 text-faint transition-transform',
+          'pointer-events-none absolute right-3 top-5 -translate-y-1/2 w-4 h-4 text-faint transition-transform duration-200',
           open && 'rotate-180'
         )}
       />
@@ -78,7 +78,7 @@ export const ModelPicker: React.FC<{ value: ModelType; onChange: (m: ModelType) 
           role="listbox"
           aria-label="Model"
           className={cn(
-            'absolute z-50 inset-x-0 p-1.5 rounded-[14px] bg-[#2c2c2e]/95 backdrop-blur-2xl backdrop-saturate-150 border border-white/10 shadow-2xl',
+            'pop-in absolute z-50 inset-x-0 p-1.5 rounded-[14px] bg-[#2c2c2e]/95 backdrop-blur-2xl backdrop-saturate-150 border border-white/10 shadow-2xl',
             upward ? 'bottom-full mb-2' : 'top-full mt-2'
           )}
         >

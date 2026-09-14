@@ -97,11 +97,11 @@ export const ImageSlot: React.FC<ImageSlotProps> = ({
           type="button"
           onClick={openFiles}
           className={cn(
-            'w-full h-24 rounded-xl border border-dashed flex flex-col items-center justify-center gap-1.5 transition-colors',
+            'group w-full h-24 rounded-xl border border-dashed flex flex-col items-center justify-center gap-1.5 transition-colors',
             dragging ? 'border-white text-ink' : 'border-white/15 text-muted hover:text-ink hover:border-white/35 hover:bg-white/[0.03]'
           )}
         >
-          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5 transition-transform duration-200 group-hover:-translate-y-0.5" />}
           <span className="text-[13px]">
             {loading ? 'Loading…' : dragging ? 'Drop it here' : single ? 'Upload or drop an image' : 'Upload or drop images'}
           </span>

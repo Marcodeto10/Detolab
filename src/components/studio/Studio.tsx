@@ -934,7 +934,7 @@ export const Studio: React.FC<StudioProps> = ({
                   aria-label="Show this result"
                   aria-current={g.id === selectedId}
                   className={cn(
-                    'shrink-0 w-14 h-14 rounded-lg overflow-hidden ring-2 ring-offset-2 ring-offset-canvas transition',
+                    'shrink-0 w-14 h-14 rounded-lg overflow-hidden ring-2 ring-offset-2 ring-offset-canvas transition duration-200 hover:scale-105 active:scale-95',
                     g.id === selectedId ? 'ring-white' : 'ring-transparent opacity-60 hover:opacity-100'
                   )}
                 >

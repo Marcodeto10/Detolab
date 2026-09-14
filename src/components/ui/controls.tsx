@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 import { ChevronDown, Loader2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -38,7 +39,7 @@ export const Button: React.FC<ButtonProps> = ({
     {...props}
     disabled={disabled || loading}
     className={cn(
-      'inline-flex items-center justify-center rounded-full font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed',
+      'inline-flex items-center justify-center rounded-full font-semibold whitespace-nowrap transition-[color,background-color,opacity,transform] duration-200 active:scale-[0.97] disabled:active:scale-100 disabled:cursor-not-allowed',
       VARIANTS[variant],
       SIZES[size],
       className
@@ -72,27 +73,39 @@ interface SegmentedProps<T extends string | number> {
 }
 
 /** Control segmentado estilo iOS. */
-export const Segmented = <T extends string | number>({ value, onChange, options, className, ariaLabel }: SegmentedProps<T>) => (
-  <div role="radiogroup" aria-label={ariaLabel} className={cn('flex p-0.5 gap-0.5 rounded-[10px] bg-fill', className)}>
-    {options.map((o) => (
-      <button
-        key={String(o.value)}
-        type="button"
-        role="radio"
-        aria-checked={o.value === value}
-        title={o.title}
-        disabled={o.disabled}
-        onClick={() => onChange(o.value)}
-        className={cn(
-          'flex-1 min-w-0 h-8 px-2 rounded-[8px] text-[13px] font-semibold transition-all truncate disabled:opacity-30',
-          o.value === value ? 'bg-[#636366] text-white shadow-[0_3px_8px_rgba(0,0,0,0.25)]' : 'text-ink/80 hover:text-ink'
-        )}
-      >
-        {o.label}
-      </button>
-    ))}
-  </div>
-);
+export const Segmented = <T extends string | number>({ value, onChange, options, className, ariaLabel }: SegmentedProps<T>) => {
+  // Cada control tiene su propio fondo que se desliza hasta la opción elegida
+  const thumbId = useId();
+  return (
+    <div role="radiogroup" aria-label={ariaLabel} className={cn('flex p-0.5 gap-0.5 rounded-[10px] bg-fill', className)}>
+      {options.map((o) => (
+        <button
+          key={String(o.value)}
+          type="button"
+          role="radio"
+          aria-checked={o.value === value}
+          title={o.title}
+          disabled={o.disabled}
+          onClick={() => onChange(o.value)}
+          className={cn(
+            'relative flex-1 min-w-0 h-8 px-2 rounded-[8px] text-[13px] font-semibold transition-[color,transform] duration-200 active:scale-[0.97] disabled:opacity-30',
+            o.value === value ? 'text-white' : 'text-ink/80 hover:text-ink'
+          )}
+        >
+          {o.value === value && (
+            <motion.span
+              layoutId={thumbId}
+              aria-hidden
+              className="absolute inset-0 rounded-[8px] bg-[#636366] shadow-[0_3px_8px_rgba(0,0,0,0.25)]"
+              transition={{ type: 'spring', stiffness: 520, damping: 42, mass: 0.8 }}
+            />
+          )}
+          <span className="relative block truncate">{o.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+};
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   options: { value: string; label: string }[];
@@ -184,7 +197,7 @@ export const Menu: React.FC<{ trigger: (open: boolean) => React.ReactNode; items
         <div
           role="menu"
           className={cn(
-            'absolute z-50 min-w-[220px] p-1.5 rounded-[14px] bg-[#2c2c2e]/90 backdrop-blur-2xl backdrop-saturate-150 border border-white/10 shadow-2xl',
+            'pop-in absolute z-50 min-w-[220px] p-1.5 rounded-[14px] bg-[#2c2c2e]/90 backdrop-blur-2xl backdrop-saturate-150 border border-white/10 shadow-2xl',
             align === 'right' ? 'right-0' : 'left-0',
             side === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'
           )}

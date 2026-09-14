@@ -23,7 +23,7 @@ export const GalleryPicker: React.FC<GalleryPickerProps> = ({ open, onClose, onP
               key={img.id}
               onClick={() => onPick(img)}
               title={img.prompt}
-              className="aspect-square rounded-lg overflow-hidden bg-white/[0.03] hover:ring-2 hover:ring-white transition"
+              className="aspect-square rounded-lg overflow-hidden bg-white/[0.03] hover:ring-2 hover:ring-white transition duration-200 hover:scale-[1.03] active:scale-[0.97]"
             >
               {img.thumbUrl ? (
                 <img src={img.thumbUrl} alt={img.prompt} loading="lazy" decoding="async" className="w-full h-full object-cover" />

@@ -3,6 +3,7 @@ import { Download, FolderPlus, Search, Sparkles, Trash2 } from 'lucide-react';
 import { useGallery, folderName } from '../../lib/galleryContext';
 import { formatBytes } from '../../lib/gallery';
 import { Button } from '../ui/controls';
+import { useTilt } from '../ui/TvCard';
 import { useDialog } from '../ui/Dialog';
 import { useToast } from '../ui/Toast';
 import { cn } from '../../lib/utils';
@@ -17,6 +18,31 @@ const normalize = (s: string) =>
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase();
+
+type GalleryImage = ReturnType<typeof useGallery>['images'][number];
+
+/** Miniatura con el mismo foco que las cards del inicio: se inclina, brilla y la foto se mueve. */
+const GalleryTile: React.FC<{ img: GalleryImage; onOpen: () => void }> = ({ img, onOpen }) => {
+  const { ref, onPointerMove, onPointerLeave } = useTilt<HTMLDivElement>();
+  return (
+    <button
+      onClick={onOpen}
+      title={img.prompt}
+      onPointerMove={onPointerMove}
+      onPointerLeave={onPointerLeave}
+      className="tv-lockup relative block w-full hover:z-10 focus-visible:z-10"
+    >
+      <div ref={ref} className="tv-card aspect-square rounded-xl bg-raised">
+        {img.thumbUrl ? (
+          <img src={img.thumbUrl} alt={img.prompt} loading="lazy" decoding="async" className="tv-parallax-bg absolute inset-0 w-full h-full object-cover" />
+        ) : (
+          <div className="absolute inset-0 animate-pulse bg-white/[0.04]" />
+        )}
+        <span aria-hidden className="tv-card-shine" />
+      </div>
+    </button>
+  );
+};
 
 export const GalleryView: React.FC<GalleryViewProps> = ({ onOpenImage, onGoToStudio }) => {
   const { ready, images, folders, usedBytes, createFolder, deleteFolder, exportZip } = useGallery();
@@ -149,18 +175,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ onOpenImage, onGoToStu
       ) : (
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 lg:gap-3">
           {filtered.map((img) => (
-            <button
-              key={img.id}
-              onClick={() => onOpenImage(img.id, filtered.map((i) => i.id))}
-              title={img.prompt}
-              className="relative aspect-square rounded-xl overflow-hidden bg-raised transition-[transform,box-shadow] duration-300 ease-out hover:z-10 hover:scale-[1.04] hover:shadow-[0_24px_48px_rgba(0,0,0,0.65)]"
-            >
-              {img.thumbUrl ? (
-                <img src={img.thumbUrl} alt={img.prompt} loading="lazy" decoding="async" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full animate-pulse bg-white/[0.04]" />
-              )}
-            </button>
+            <GalleryTile key={img.id} img={img} onOpen={() => onOpenImage(img.id, filtered.map((i) => i.id))} />
           ))}
         </div>
       )}

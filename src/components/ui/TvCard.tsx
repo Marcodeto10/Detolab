@@ -17,28 +17,41 @@ interface TvCardProps {
 const reducedMotion = () =>
   typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-/** Card con el efecto de foco de Apple TV: crece, se inclina apenas y brilla bajo el puntero. */
-export const TvCard: React.FC<TvCardProps> = ({ art, artClassName, children, className, onClick, ariaLabel, title }) => {
-  const artRef = useRef<HTMLDivElement>(null);
+/**
+ * Efecto de foco de Apple TV: la card se inclina hacia el puntero, brilla y sus capas
+ * (.tv-parallax-bg y .tv-parallax-fg) se mueven con profundidad.
+ */
+export const useTilt = <T extends HTMLElement>() => {
+  const ref = useRef<T>(null);
 
-  const onMove = (e: React.PointerEvent) => {
-    const el = artRef.current;
+  const onPointerMove = (e: React.PointerEvent) => {
+    const el = ref.current;
     if (!el || e.pointerType !== 'mouse' || reducedMotion()) return;
     const r = el.getBoundingClientRect();
     const x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
     const y = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
-    el.style.setProperty('--rx', `${(0.5 - y) * 6}deg`);
-    el.style.setProperty('--ry', `${(x - 0.5) * 8}deg`);
+    el.style.setProperty('--rx', `${(0.5 - y) * 10}deg`);
+    el.style.setProperty('--ry', `${(x - 0.5) * 12}deg`);
+    el.style.setProperty('--px', `${x - 0.5}`);
+    el.style.setProperty('--py', `${y - 0.5}`);
     el.style.setProperty('--mx', `${x * 100}%`);
     el.style.setProperty('--my', `${y * 100}%`);
   };
 
-  const onLeave = () => {
-    const el = artRef.current;
+  const onPointerLeave = () => {
+    const el = ref.current;
     if (!el) return;
     el.style.setProperty('--rx', '0deg');
     el.style.setProperty('--ry', '0deg');
+    el.style.setProperty('--px', '0');
+    el.style.setProperty('--py', '0');
   };
+
+  return { ref, onPointerMove, onPointerLeave };
+};
+
+export const TvCard: React.FC<TvCardProps> = ({ art, artClassName, children, className, onClick, ariaLabel, title }) => {
+  const { ref, onPointerMove, onPointerLeave } = useTilt<HTMLDivElement>();
 
   return (
     <button
@@ -46,11 +59,11 @@ export const TvCard: React.FC<TvCardProps> = ({ art, artClassName, children, cla
       onClick={onClick}
       aria-label={ariaLabel}
       title={title}
-      onPointerMove={onMove}
-      onPointerLeave={onLeave}
+      onPointerMove={onPointerMove}
+      onPointerLeave={onPointerLeave}
       className={cn('tv-lockup group block w-full min-w-0 self-start text-left', className)}
     >
-      <div ref={artRef} className={cn('tv-card bg-raised', artClassName)}>
+      <div ref={ref} className={cn('tv-card bg-raised', artClassName)}>
         {art}
         <span aria-hidden className="tv-card-shine" />
       </div>
