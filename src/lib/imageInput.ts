@@ -97,13 +97,27 @@ export const urlFromDataTransfer = (dt: DataTransfer): string | null => {
   return url || null;
 };
 
-export const downloadUrl = (url: string, filename: string) => {
+export const downloadUrl = async (url: string, filename: string) => {
+  // Los links de otra dirección (la galería online) no se pueden descargar directo: primero se traen
+  let href = url;
+  let revoke = false;
+  if (!/^(blob:|data:)/i.test(url)) {
+    try {
+      const blob = await (await fetch(url)).blob();
+      href = URL.createObjectURL(blob);
+      revoke = true;
+    } catch {
+      window.open(url, '_blank', 'noopener');
+      return;
+    }
+  }
   const a = document.createElement('a');
-  a.href = url;
+  a.href = href;
   a.download = filename;
   document.body.appendChild(a);
   a.click();
   a.remove();
+  if (revoke) setTimeout(() => URL.revokeObjectURL(href), 10_000);
 };
 
 export const downloadName = (prefix: string, id?: string) => {

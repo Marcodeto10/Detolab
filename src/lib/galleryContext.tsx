@@ -1,20 +1,23 @@
-// Estado compartido de la galería: lo usan el inicio, el estudio y la galería.
+// Estado compartido de la galería online: lo usan el inicio, el estudio y la galería.
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import * as db from './gallery';
 
 interface GalleryApi {
   ready: boolean;
+  /** Error al cargar la galería (por ejemplo, sin conexión) */
+  loadError: string | null;
   images: db.GalleryImage[];
   folders: db.GalleryFolder[];
-  storage: db.StorageInfo | null;
-  save: (dataUrl: string, prompt: string, folderId: string) => Promise<db.GalleryImage>;
+  usedBytes: number;
+  save: (dataUrl: string, prompt: string, folderId: string, meta?: db.SaveMeta) => Promise<db.GalleryImage>;
   remove: (id: string) => Promise<void>;
   restore: (id: string) => Promise<void>;
   move: (id: string, folderId: string) => Promise<void>;
   createFolder: (name: string) => Promise<db.GalleryFolder>;
   deleteFolder: (id: string) => Promise<void>;
   exportZip: (ids?: string[]) => Promise<number>;
+  reload: () => void;
 }
 
 const GalleryContext = createContext<GalleryApi | null>(null);
@@ -29,105 +32,97 @@ const FOLDER_NAMES: Record<string, string> = { all: 'All', mockups: 'Mockups', p
 
 export const folderName = (f: db.GalleryFolder) => FOLDER_NAMES[f.id] ?? f.name;
 
+/** Tiempo para tocar "Undo" antes de que la imagen se borre de verdad. */
+const UNDO_MS = 8000;
+/** Los links firmados duran 6 horas; los renovamos antes. */
+const REFRESH_MS = 5 * 60 * 60 * 1000;
+
 export const GalleryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [images, setImages] = useState<db.GalleryImage[]>([]);
   const [folders, setFolders] = useState<db.GalleryFolder[]>(db.DEFAULT_FOLDERS);
-  const [storage, setStorage] = useState<db.StorageInfo | null>(null);
-  // Registros borrados recientemente, para poder deshacer.
-  const trash = useRef(new Map<string, db.GalleryRecord>());
+  const [reloadKey, setReloadKey] = useState(0);
+  const imagesRef = useRef(images);
+  imagesRef.current = images;
 
-  const refreshStorage = useCallback(() => {
-    db.getStorageInfo().then(setStorage);
-  }, []);
+  // Borrados pendientes: se ejecutan pasado el tiempo de "Undo"
+  const pending = useRef(new Map<string, { img: db.GalleryImage; timer: number }>());
 
   useEffect(() => {
     let alive = true;
+    setLoadError(null);
     (async () => {
       try {
-        // Restos de versiones anteriores que ocupaban espacio sin usarse.
-        ['ai-explorer-gallery', 'ai-explorer-folders', 'deto-lab-stats'].forEach((k) => localStorage.removeItem(k));
-      } catch {
-        // storage bloqueado
+        const [f, imgs] = await Promise.all([db.listFolders(), db.listImages()]);
+        if (!alive) return;
+        setFolders(f);
+        setImages(imgs);
+      } catch (err) {
+        if (!alive) return;
+        setLoadError(err instanceof Error ? err.message : "Couldn't load your gallery.");
+      } finally {
+        if (alive) setReady(true);
       }
-      // No frenamos la carga esperando este permiso
-      db.requestPersistence();
-
-      const [f, imgs] = await Promise.all([db.listFolders(), db.listImages()]);
-      if (!alive) return;
-      setFolders(f);
-      setImages(imgs);
-      setReady(true);
-      refreshStorage();
-
-      // Imágenes guardadas antes de que existieran las miniaturas: se generan
-      // en segundo plano, las más nuevas primero, y se aplican en tandas.
-      const missing = imgs.filter((i) => !i.thumbUrl);
-      if (!missing.length) return;
-      const fullUrl = new Map(missing.map((i) => [i.id, i.url]));
-      const pending = new Map<string, string>();
-      let timer: number | undefined;
-
-      const flush = () => {
-        timer = undefined;
-        if (!alive || !pending.size) return;
-        const batch = new Map(pending);
-        pending.clear();
-        setImages((prev) => prev.map((i) => (batch.has(i.id) ? { ...i, thumbUrl: batch.get(i.id) } : i)));
-      };
-
-      await db.backfillThumbnails(
-        missing.map((i) => i.id),
-        (id, thumbUrl) => {
-          // Si no se pudo achicar, usamos la imagen completa
-          pending.set(id, thumbUrl ?? fullUrl.get(id) ?? '');
-          if (timer === undefined) timer = window.setTimeout(flush, 250);
-        },
-        () => !alive
-      );
-      if (timer !== undefined) window.clearTimeout(timer);
-      flush();
-      if (alive) refreshStorage();
     })();
     return () => {
       alive = false;
+    };
+  }, [reloadKey]);
+
+  // Renovar links firmados cada tanto
+  useEffect(() => {
+    const timer = window.setInterval(async () => {
+      try {
+        const refreshed = await db.refreshUrls(imagesRef.current);
+        setImages(refreshed);
+      } catch {
+        // si falla, se intenta en la próxima vuelta
+      }
+    }, REFRESH_MS);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  // Al salir (cerrar sesión), ejecutar los borrados pendientes y liberar memoria
+  useEffect(() => {
+    const queue = pending.current;
+    return () => {
+      queue.forEach(({ img, timer }) => {
+        window.clearTimeout(timer);
+        db.deleteImage(img).catch(() => {});
+      });
+      queue.clear();
       db.releaseAllUrls();
     };
-  }, [refreshStorage]);
+  }, []);
 
-  const save = useCallback(
-    async (dataUrl: string, prompt: string, folderId: string) => {
-      const img = await db.saveImage(dataUrl, prompt, folderId);
-      setImages((prev) => [img, ...prev]);
-      refreshStorage();
-      return img;
-    },
-    [refreshStorage]
-  );
+  const save = useCallback(async (dataUrl: string, prompt: string, folderId: string, meta?: db.SaveMeta) => {
+    const img = await db.saveImage(dataUrl, prompt, folderId, meta);
+    setImages((prev) => [img, ...prev]);
+    return img;
+  }, []);
 
-  const remove = useCallback(
-    async (id: string) => {
-      const record = await db.getRecord(id);
-      if (record) trash.current.set(id, record);
-      setImages((prev) => prev.filter((i) => i.id !== id));
-      await db.deleteImage(id);
-      refreshStorage();
-    },
-    [refreshStorage]
-  );
+  const remove = useCallback(async (id: string) => {
+    const img = imagesRef.current.find((i) => i.id === id);
+    if (!img) return;
+    setImages((prev) => prev.filter((i) => i.id !== id));
+    const timer = window.setTimeout(() => {
+      pending.current.delete(id);
+      db.deleteImage(img).catch(() => {
+        // si no se pudo borrar, la volvemos a mostrar
+        setImages((prev) => [...prev, img].sort((a, b) => b.createdAt - a.createdAt));
+      });
+    }, UNDO_MS);
+    pending.current.set(id, { img, timer });
+  }, []);
 
-  const restore = useCallback(
-    async (id: string) => {
-      const record = trash.current.get(id);
-      if (!record) return;
-      trash.current.delete(id);
-      const img = await db.putRecord(record);
-      const withThumb = img.thumbUrl ? img : { ...img, thumbUrl: img.url };
-      setImages((prev) => [...prev.filter((i) => i.id !== id), withThumb].sort((a, b) => b.createdAt - a.createdAt));
-      refreshStorage();
-    },
-    [refreshStorage]
-  );
+  const restore = useCallback(async (id: string) => {
+    const entry = pending.current.get(id);
+    if (!entry) return;
+    window.clearTimeout(entry.timer);
+    pending.current.delete(id);
+    setImages((prev) => [...prev.filter((i) => i.id !== id), entry.img].sort((a, b) => b.createdAt - a.createdAt));
+  }, []);
 
   const move = useCallback(async (id: string, folderId: string) => {
     setImages((prev) => prev.map((i) => (i.id === id ? { ...i, folderId } : i)));
@@ -146,11 +141,18 @@ export const GalleryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setImages((prev) => prev.map((i) => (i.folderId === id ? { ...i, folderId: 'all' } : i)));
   }, []);
 
-  const exportZip = useCallback((ids?: string[]) => db.exportZip(ids), []);
+  const exportZip = useCallback(async (ids?: string[]) => {
+    const wanted = ids ? new Set(ids) : null;
+    return db.exportZip(imagesRef.current.filter((i) => !wanted || wanted.has(i.id)));
+  }, []);
+
+  const reload = useCallback(() => setReloadKey((k) => k + 1), []);
+
+  const usedBytes = useMemo(() => images.reduce((sum, i) => sum + i.bytes, 0), [images]);
 
   const value = useMemo(
-    () => ({ ready, images, folders, storage, save, remove, restore, move, createFolder, deleteFolder, exportZip }),
-    [ready, images, folders, storage, save, remove, restore, move, createFolder, deleteFolder, exportZip]
+    () => ({ ready, loadError, images, folders, usedBytes, save, remove, restore, move, createFolder, deleteFolder, exportZip, reload }),
+    [ready, loadError, images, folders, usedBytes, save, remove, restore, move, createFolder, deleteFolder, exportZip, reload]
   );
 
   return <GalleryContext.Provider value={value}>{children}</GalleryContext.Provider>;

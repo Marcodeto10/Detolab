@@ -19,7 +19,7 @@ const normalize = (s: string) =>
     .toLowerCase();
 
 export const GalleryView: React.FC<GalleryViewProps> = ({ onOpenImage, onGoToStudio }) => {
-  const { ready, images, folders, storage, createFolder, deleteFolder, exportZip } = useGallery();
+  const { ready, images, folders, usedBytes, createFolder, deleteFolder, exportZip } = useGallery();
   const { confirm, prompt } = useDialog();
   const toast = useToast();
   const [folderId, setFolderId] = useState('all');
@@ -78,7 +78,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ onOpenImage, onGoToStu
         <div>
           <h1 className="text-4xl lg:text-5xl font-bold tracking-tight leading-none">Gallery</h1>
           <p className="mt-3 text-[15px] text-muted">
-            {images.length} {images.length === 1 ? 'image' : 'images'} saved in this browser
+            {images.length} {images.length === 1 ? 'image' : 'images'} saved to your account
           </p>
         </div>
         <Button onClick={download} loading={zipping} disabled={!filtered.length}>
@@ -165,10 +165,9 @@ export const GalleryView: React.FC<GalleryViewProps> = ({ onOpenImage, onGoToStu
         </div>
       )}
 
-      {storage && (
+      {images.length > 0 && (
         <p className="mt-10 max-w-2xl text-[12px] text-faint leading-relaxed">
-          Uses {formatBytes(storage.usedBytes)} in this browser. Each address (e.g. localhost or detolab-five.vercel.app)
-          has its own gallery, and clearing the site's data deletes it: download anything important.
+          Saved to your account · {formatBytes(usedBytes)}. Available on any device where you sign in.
         </p>
       )}
     </div>

@@ -1,25 +1,27 @@
-import React, { useCallback, useState } from 'react';
-import { ApiKeyGuard } from './components/ApiKeyGuard';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import { Shell, type View } from './components/Shell';
 import { Home } from './components/Home';
 import { Studio, type StudioRequest } from './components/studio/Studio';
 import { GalleryView } from './components/gallery/GalleryView';
 import { ImageViewer } from './components/gallery/ImageViewer';
-import { SettingsDialog } from './components/SettingsDialog';
+import { AccountView } from './components/AccountView';
+import { LoginScreen } from './components/LoginScreen';
+import { ApiKeyScreen } from './components/ApiKeyScreen';
 import { ToastProvider } from './components/ui/Toast';
 import { DialogProvider } from './components/ui/Dialog';
 import { GalleryProvider, useGallery } from './lib/galleryContext';
-import { getUserName } from './lib/settings';
+import { AuthProvider, avatarUrl, displayName, useAuth } from './lib/auth';
+import { clearLegacyStorage, getApiKey, setKeyScope } from './lib/settings';
 import type { SlotId, ToolId } from './lib/tools';
 
-const Workspace: React.FC = () => {
+const Workspace: React.FC<{ onKeyRemoved: () => void }> = ({ onKeyRemoved }) => {
+  const { user } = useAuth();
   const { images } = useGallery();
   const [view, setView] = useState<View>('home');
   const [tool, setTool] = useState<ToolId>('create');
   const [request, setRequest] = useState<StudioRequest | null>(null);
   const [viewer, setViewer] = useState<{ id: string; ids: string[] } | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [userName, setUserName] = useState(getUserName);
 
   const navigate = useCallback((v: View) => {
     setView(v);
@@ -48,13 +50,14 @@ const Workspace: React.FC = () => {
       tool={tool}
       onNavigate={navigate}
       onOpenTool={openTool}
-      onOpenSettings={() => setSettingsOpen(true)}
-      userName={userName}
+      onOpenAccount={() => navigate('account')}
+      userName={displayName(user)}
+      avatar={avatarUrl(user)}
       galleryCount={images.length}
     >
-      {/* Las tres vistas quedan montadas para no perder lo que estabas haciendo */}
+      {/* Inicio, estudio y galería quedan montados para no perder lo que estabas haciendo */}
       <div hidden={view !== 'home'}>
-        <Home userName={userName} onOpenTool={openTool} onOpenGallery={() => navigate('gallery')} onOpenImage={(id) => openImage(id)} />
+        <Home userName={displayName(user)} onOpenTool={openTool} onOpenGallery={() => navigate('gallery')} onOpenImage={(id) => openImage(id)} />
       </div>
       <div hidden={view !== 'studio'}>
         <Studio
@@ -70,6 +73,7 @@ const Workspace: React.FC = () => {
       <div hidden={view !== 'gallery'}>
         <GalleryView onOpenImage={openImage} onGoToStudio={() => navigate('studio')} />
       </div>
+      {view === 'account' && <AccountView onKeyRemoved={onKeyRemoved} />}
 
       <ImageViewer
         imageId={viewer?.id ?? null}
@@ -78,25 +82,50 @@ const Workspace: React.FC = () => {
         onNavigate={navigateViewer}
         onUseAs={useAs}
       />
-      <SettingsDialog
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        userName={userName}
-        onUserNameChange={setUserName}
-      />
     </Shell>
   );
+};
+
+/** Después del login: pide la API key (si este navegador no la tiene para esta cuenta). */
+const KeyGate: React.FC<{ userId: string; email: string }> = ({ userId, email }) => {
+  setKeyScope(userId);
+  const { signOut } = useAuth();
+  const [hasKey, setHasKey] = useState(() => !!getApiKey());
+
+  useEffect(() => {
+    clearLegacyStorage();
+  }, []);
+
+  if (!hasKey) return <ApiKeyScreen email={email} onSaved={() => setHasKey(true)} onSignOut={signOut} />;
+
+  return (
+    <GalleryProvider>
+      <Workspace onKeyRemoved={() => setHasKey(false)} />
+    </GalleryProvider>
+  );
+};
+
+const AuthGate: React.FC = () => {
+  const { loading, user } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-dvh grid place-items-center bg-canvas">
+        <Loader2 className="w-6 h-6 animate-spin text-faint" />
+      </div>
+    );
+  }
+  if (!user) return <LoginScreen />;
+  return <KeyGate key={user.id} userId={user.id} email={user.email ?? ''} />;
 };
 
 export default function App() {
   return (
     <ToastProvider>
       <DialogProvider>
-        <ApiKeyGuard>
-          <GalleryProvider>
-            <Workspace />
-          </GalleryProvider>
-        </ApiKeyGuard>
+        <AuthProvider>
+          <AuthGate />
+        </AuthProvider>
       </DialogProvider>
     </ToastProvider>
   );

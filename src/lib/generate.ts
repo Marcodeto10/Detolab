@@ -12,6 +12,19 @@ const TIMEOUT_MS = 150_000;
 
 type Part = { text: string } | { inlineData: { data: string; mimeType: string } };
 
+/** Tokens que informa Google en cada respuesta (para la sección de uso) */
+export interface TokenUsage {
+  promptTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+}
+
+const readUsage = (response: any): TokenUsage | undefined => {
+  const u = response?.usageMetadata;
+  if (!u) return undefined;
+  return { promptTokens: u.promptTokenCount, outputTokens: u.candidatesTokenCount, totalTokens: u.totalTokenCount };
+};
+
 export class CancelledError extends Error {
   constructor() {
     super('Cancelled');
@@ -116,8 +129,8 @@ interface RequestImageArgs {
   signal: AbortSignal;
 }
 
-/** Pide una imagen. Devuelve un data URL. Se puede cancelar con `signal`. */
-export const requestImage = async ({ apiKey, parts, settings, ratio, dims, signal }: RequestImageArgs): Promise<string> => {
+/** Pide una imagen. Devuelve un data URL y los tokens usados. Se puede cancelar con `signal`. */
+export const requestImage = async ({ apiKey, parts, settings, ratio, dims, signal }: RequestImageArgs): Promise<{ dataUrl: string; usage?: TokenUsage }> => {
   if (signal.aborted) throw new CancelledError();
 
   const ai = new GoogleGenAI({ apiKey });
@@ -164,7 +177,7 @@ export const requestImage = async ({ apiKey, parts, settings, ratio, dims, signa
         // si no se puede recortar, devolvemos la imagen tal cual
       }
     }
-    return url;
+    return { dataUrl: url, usage: readUsage(response) };
   } catch (err) {
     if (signal.aborted) throw new CancelledError();
     throw err;
@@ -216,7 +229,7 @@ export const friendlyError = (err: unknown, modelType?: ModelType): string => {
   return msg.length > 220 ? `${msg.slice(0, 220)}…` : msg || 'Something went wrong. Try again.';
 };
 
-export const improvePrompt = async (apiKey: string, prompt: string): Promise<string> => {
+export const improvePrompt = async (apiKey: string, prompt: string): Promise<{ text: string; usage?: TokenUsage }> => {
   const ai = new GoogleGenAI({ apiKey });
   const response = await ai.models.generateContent({
     model: TEXT_MODEL,
@@ -238,7 +251,7 @@ Original Prompt: ${prompt}`,
   });
   const text = response.text?.trim();
   if (!text) throw new Error("Couldn't improve the prompt.");
-  return text;
+  return { text, usage: readUsage(response) };
 };
 
 /** Valida la key con un pedido mínimo de texto. */

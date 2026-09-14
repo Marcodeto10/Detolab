@@ -55,7 +55,8 @@ import {
   saveSettings,
   type StudioSettings,
 } from '../../lib/settings';
-import { MODELS, MODEL_ORDER, ratiosFor, sizesFor, supportsSearch, type ModelType } from '../../lib/models';
+import { MODELS, MODEL_ORDER, TEXT_MODEL, getModelId, ratiosFor, sizesFor, supportsSearch, type ModelType } from '../../lib/models';
+import { logUsage } from '../../lib/usage';
 import { useGallery } from '../../lib/galleryContext';
 import { useToast } from '../ui/Toast';
 import { Button, Label, Menu, Segmented, Select, Toggle } from '../ui/controls';
@@ -256,7 +257,7 @@ export const Studio: React.FC<StudioProps> = ({
   ): Promise<Generation> => {
     const base: Generation = { ...meta, id: uid(), createdAt: Date.now() };
     try {
-      const saved = await gallery.save(dataUrl, meta.prompt, folderId);
+      const saved = await gallery.save(dataUrl, meta.prompt, folderId, { tool: meta.tool, model: getModelId(settings.modelType) });
       return { ...base, galleryId: saved.id };
     } catch (err: any) {
       toast({
@@ -267,6 +268,20 @@ export const Studio: React.FC<StudioProps> = ({
         tone: 'error',
       });
       return { ...base, fallbackUrl: dataUrl };
+    }
+  };
+
+  // Pide la imagen y deja registrado el uso, también si falla o se cancela
+  const timedRequest = async (args: Parameters<typeof requestImage>[0], t: ToolId) => {
+    const started = performance.now();
+    const base = { tool: t, model: getModelId(args.settings.modelType), imageSize: args.settings.imageSize, aspectRatio: args.ratio };
+    try {
+      const result = await requestImage(args);
+      logUsage({ ...base, status: 'success', images: 1, usage: result.usage, durationMs: performance.now() - started });
+      return result;
+    } catch (err) {
+      logUsage({ ...base, status: isCancelled(err) ? 'cancelled' : 'error', images: 0, durationMs: performance.now() - started });
+      throw err;
     }
   };
 
@@ -314,7 +329,7 @@ export const Studio: React.FC<StudioProps> = ({
             buildBulkParts(item, reference, promptNow),
             resolveFormat(s.aspectRatio, s.modelType, item.file),
           ]);
-          const dataUrl = await requestImage({ apiKey, parts, settings: s, ratio: format.ratio, dims: format.dims, signal: controller.signal });
+          const { dataUrl } = await timedRequest({ apiKey, parts, settings: s, ratio: format.ratio, dims: format.dims, signal: controller.signal }, t);
           const gen = await persist(dataUrl, { tool: t, prompt: label, batchId, baseUrl: URL.createObjectURL(item.file) }, toolSpec.folderId);
           ok++;
           setGenerations((prev) => [gen, ...prev]);
@@ -362,7 +377,7 @@ export const Studio: React.FC<StudioProps> = ({
         Array.from({ length: count }, async (_, i) => {
           try {
             if (i > 0) await wait(400 * i);
-            const dataUrl = await requestImage({ apiKey, parts, settings: s, ratio: format.ratio, dims: format.dims, signal: controller.signal });
+            const { dataUrl } = await timedRequest({ apiKey, parts, settings: s, ratio: format.ratio, dims: format.dims, signal: controller.signal }, t);
             if (controller.signal.aborted) return;
             const gen = await persist(dataUrl, { tool: t, prompt: label, batchId, baseUrl }, toolSpec.folderId);
             setGenerations((prev) => [gen, ...prev]);
@@ -409,7 +424,8 @@ export const Studio: React.FC<StudioProps> = ({
     if (!original.trim() || !apiKey) return;
     setImproving(true);
     try {
-      const better = await improvePrompt(apiKey, original);
+      const { text: better, usage } = await improvePrompt(apiKey, original);
+      logUsage({ tool: 'improve', model: TEXT_MODEL, status: 'success', images: 0, usage });
       setPrompts((p) => ({ ...p, [t]: better }));
       toast({
         message: 'Prompt improved.',

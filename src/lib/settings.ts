@@ -2,9 +2,9 @@
 
 import { MODEL_ORDER, ratiosFor, sizesFor, type ModelType } from './models';
 
-// Mismas claves que la versión anterior, así nadie tiene que volver a loguearse.
-export const KEY_STORAGE = 'ai-explorer-manual-key';
-export const NAME_STORAGE = 'ai-explorer-user-name';
+// Claves de la versión anterior (sin login): se limpian al entrar con una cuenta.
+const LEGACY_KEY_STORAGE = 'ai-explorer-manual-key';
+const LEGACY_NAME_STORAGE = 'ai-explorer-user-name';
 const SETTINGS_STORAGE = 'detolab-settings';
 
 const read = (key: string): string | null => {
@@ -24,10 +24,25 @@ const write = (key: string, value: string | null) => {
   }
 };
 
-export const getApiKey = () => read(KEY_STORAGE);
-export const setApiKey = (key: string | null) => write(KEY_STORAGE, key);
-export const getUserName = () => read(NAME_STORAGE) || '';
-export const setUserName = (name: string | null) => write(NAME_STORAGE, name);
+// La API key queda solo en este navegador, separada por cuenta: si dos personas
+// comparten la compu, cada una usa la suya.
+let keyScope = '';
+
+export const setKeyScope = (userId: string) => {
+  keyScope = userId;
+};
+
+const keyStorage = () => `detolab-key:${keyScope}`;
+
+export const getApiKey = () => (keyScope ? read(keyStorage()) : null);
+export const setApiKey = (key: string | null) => {
+  if (keyScope) write(keyStorage(), key);
+};
+
+export const clearLegacyStorage = () => {
+  write(LEGACY_KEY_STORAGE, null);
+  write(LEGACY_NAME_STORAGE, null);
+};
 
 export interface StudioSettings {
   modelType: ModelType;

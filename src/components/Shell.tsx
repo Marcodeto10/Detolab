@@ -1,10 +1,10 @@
 import React from 'react';
-import { Frame, House, Images, Layers, Package, Pencil, Settings, Sparkles } from 'lucide-react';
+import { Frame, House, Images, Layers, Package, Pencil, Sparkles } from 'lucide-react';
 import { Logo } from './Icons';
 import { TOOLS, TOOL_ORDER, type ToolId } from '../lib/tools';
 import { cn } from '../lib/utils';
 
-export type View = 'home' | 'studio' | 'gallery';
+export type View = 'home' | 'studio' | 'gallery' | 'account';
 
 const NAV: { id: View; label: string; icon: React.ElementType }[] = [
   { id: 'home', label: 'Home', icon: House },
@@ -25,11 +25,26 @@ interface ShellProps {
   tool: ToolId;
   onNavigate: (v: View) => void;
   onOpenTool: (t: ToolId) => void;
-  onOpenSettings: () => void;
+  onOpenAccount: () => void;
   userName: string;
+  avatar: string;
   galleryCount: number;
   children: React.ReactNode;
 }
+
+const Avatar: React.FC<{ src: string; name: string; className?: string }> = ({ src, name, className }) =>
+  src ? (
+    <img src={src} alt="" referrerPolicy="no-referrer" className={cn('rounded-full object-cover shrink-0', className)} />
+  ) : (
+    <span
+      className={cn(
+        'rounded-full shrink-0 bg-gradient-to-br from-[#8e8e93] to-[#48484a] grid place-items-center text-[13px] font-semibold uppercase',
+        className
+      )}
+    >
+      {name.trim()[0] ?? 'D'}
+    </span>
+  );
 
 const SideItem: React.FC<{ icon: React.ElementType; label: string; active?: boolean; badge?: number; onClick: () => void }> = ({
   icon: Icon,
@@ -56,10 +71,19 @@ const SideHeading: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <p className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-faint">{children}</p>
 );
 
-export const Shell: React.FC<ShellProps> = ({ view, tool, onNavigate, onOpenTool, onOpenSettings, userName, galleryCount, children }) => {
+export const Shell: React.FC<ShellProps> = ({
+  view,
+  tool,
+  onNavigate,
+  onOpenTool,
+  onOpenAccount,
+  userName,
+  avatar,
+  galleryCount,
+  children,
+}) => {
   // En el inicio va la barra superior estilo Apple TV; dentro de las secciones, la barra lateral
   const inSection = view !== 'home';
-  const initial = userName.trim()[0] ?? 'D';
 
   return (
     <div className="min-h-dvh bg-canvas text-ink lg:flex">
@@ -100,17 +124,18 @@ export const Shell: React.FC<ShellProps> = ({ view, tool, onNavigate, onOpenTool
           </nav>
 
           <button
-            onClick={onOpenSettings}
-            className="m-3 flex items-center gap-3 p-2.5 rounded-xl text-left hover:bg-white/[0.05] transition-colors"
+            onClick={onOpenAccount}
+            aria-current={view === 'account' ? 'page' : undefined}
+            className={cn(
+              'm-3 flex items-center gap-3 p-2.5 rounded-xl text-left transition-colors',
+              view === 'account' ? 'bg-white/[0.1]' : 'hover:bg-white/[0.05]'
+            )}
           >
-            <span className="w-8 h-8 shrink-0 rounded-full bg-gradient-to-br from-[#8e8e93] to-[#48484a] grid place-items-center text-[13px] font-semibold uppercase">
-              {initial}
-            </span>
+            <Avatar src={avatar} name={userName} className="w-8 h-8" />
             <span className="flex-1 min-w-0">
-              <span className="block text-[14px] font-medium truncate">{userName || 'Your studio'}</span>
-              <span className="block text-[12px] text-faint">Settings & API key</span>
+              <span className="block text-[14px] font-medium truncate">{userName || 'Your account'}</span>
+              <span className="block text-[12px] text-faint">Account & usage</span>
             </span>
-            <Settings className="w-4 h-4 text-faint" />
           </button>
         </aside>
       )}
@@ -148,14 +173,12 @@ export const Shell: React.FC<ShellProps> = ({ view, tool, onNavigate, onOpenTool
             </nav>
 
             <button
-              onClick={onOpenSettings}
-              aria-label="Settings"
+              onClick={onOpenAccount}
+              aria-label="Account and usage"
               className="justify-self-end flex items-center gap-2.5 h-9 p-1 lg:pr-3.5 rounded-full hover:bg-white/[0.08] transition-colors"
             >
-              <span className="w-7 h-7 rounded-full bg-gradient-to-br from-[#8e8e93] to-[#48484a] grid place-items-center text-[13px] font-semibold uppercase">
-                {initial}
-              </span>
-              <span className="hidden lg:block text-[14px] font-medium max-w-[160px] truncate">{userName || 'Settings'}</span>
+              <Avatar src={avatar} name={userName} className="w-7 h-7" />
+              <span className="hidden lg:block text-[14px] font-medium max-w-[160px] truncate">{userName || 'Account'}</span>
             </button>
           </div>
         </header>
