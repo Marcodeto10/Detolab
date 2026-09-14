@@ -140,6 +140,17 @@
   transition: transform 500ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* Filas que se arrastran con el mouse */
+.drag-scroll {
+  cursor: grab;
+}
+
+.drag-scroll.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
+  user-select: none;
+}
+
 /* Menús que aparecen con un pequeño "pop" */
 @keyframes pop-in {
   from {

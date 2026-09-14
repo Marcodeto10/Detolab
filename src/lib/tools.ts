@@ -110,7 +110,7 @@ export const TOOLS: Record<ToolId, ToolSpec> = {
     promptPlaceholder: 'e.g. Change the sky to a sunset and remove the person in the background',
     promptRequired: true,
     folderId: 'all',
-    cover: 'https://i.pinimg.com/736x/4f/a3/93/4fa39380edb038dd930f6bbccbae6cab.jpg',
+    cover: '/covers/edit.jpg',
   },
   mockup: {
     id: 'mockup',
@@ -125,7 +125,7 @@ export const TOOLS: Record<ToolId, ToolSpec> = {
     promptRequired: false,
     defaultPrompt: MOCKUP_PROMPT,
     folderId: 'mockups',
-    cover: 'https://i.pinimg.com/1200x/f0/e9/a1/f0e9a10b372f4ba24dad94217636fb26.jpg',
+    cover: '/covers/mockup.jpg',
   },
   product: {
     id: 'product',

@@ -2,6 +2,7 @@ import React from 'react';
 import { ChevronRight } from 'lucide-react';
 import { TOOLS, TOOL_ORDER, GALLERY_COVER, GALLERY_VIDEO, type ToolId } from '../lib/tools';
 import { useGallery } from '../lib/galleryContext';
+import { useDragScroll } from '../lib/useDragScroll';
 import { CoverImage, CoverVideo } from './ui/controls';
 import { TvCard } from './ui/TvCard';
 
@@ -40,7 +41,8 @@ const ShelfHeader: React.FC<{ title: string; action?: React.ReactNode }> = ({ ti
 
 export const Home: React.FC<HomeProps> = ({ onOpenTool, onOpenGallery, onOpenImage }) => {
   const { images, ready } = useGallery();
-  const recent = images.slice(0, 16);
+  const recent = images.slice(0, 40);
+  const recentRef = useDragScroll<HTMLDivElement>();
 
   // Las 5 herramientas + la galería: 3 y 3
   const cards: HomeCard[] = [
@@ -104,7 +106,10 @@ export const Home: React.FC<HomeProps> = ({ onOpenTool, onOpenGallery, onOpenIma
           }
         />
         {recent.length > 0 ? (
-          <div className="mt-4 -mx-4 px-4 scroll-px-4 lg:-mx-10 lg:px-10 lg:scroll-px-10 pb-4 pt-1 flex gap-4 overflow-x-auto snap-x no-scrollbar">
+          <div
+            ref={recentRef}
+            className="drag-scroll mt-4 -mx-4 px-4 scroll-px-4 lg:-mx-10 lg:px-10 lg:scroll-px-10 pb-4 pt-1 flex gap-4 overflow-x-auto snap-x no-scrollbar"
+          >
             {recent.map((img) => (
               <TvCard
                 key={img.id}
@@ -122,6 +127,20 @@ export const Home: React.FC<HomeProps> = ({ onOpenTool, onOpenGallery, onOpenIma
                 }
               />
             ))}
+            {images.length > recent.length && (
+              <TvCard
+                onClick={onOpenGallery}
+                ariaLabel="See all images"
+                className="snap-start shrink-0 w-40 lg:w-52"
+                artClassName="aspect-square rounded-2xl"
+                art={
+                  <span className="tv-parallax-fg absolute inset-0 flex flex-col items-center justify-center gap-1 text-ink">
+                    <span className="text-[15px] font-semibold">See all</span>
+                    <span className="text-[13px] text-muted tabular-nums">{images.length} images</span>
+                  </span>
+                }
+              />
+            )}
           </div>
         ) : (
           ready && (

@@ -142,7 +142,10 @@ export const Studio: React.FC<StudioProps> = ({
   const [loadingSlot, setLoadingSlot] = useState<SlotId | null>(null);
   const [pickerSlot, setPickerSlot] = useState<SlotId | null>(null);
   const [generations, setGenerations] = useState<Generation[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Cada herramienta recuerda su propio resultado: lo que generás en Create no aparece en Edit
+  const [selectedByTool, setSelectedByTool] = useState<Partial<Record<ToolId, string>>>({});
+  const selectedId = selectedByTool[tool] ?? null;
+  const selectFor = (t: ToolId, id: string) => setSelectedByTool((s) => ({ ...s, [t]: id }));
   const [bulkBatchId, setBulkBatchId] = useState<string | null>(null);
   const [run, setRun] = useState<RunState | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -164,6 +167,7 @@ export const Studio: React.FC<StudioProps> = ({
   useEffect(() => {
     setActiveSlot(null);
     setLastError(null);
+    setCompare(false);
   }, [tool]);
 
   useEffect(() => {
@@ -384,7 +388,7 @@ export const Studio: React.FC<StudioProps> = ({
             setGenerations((prev) => [gen, ...prev]);
             if (!shown) {
               shown = true;
-              setSelectedId(gen.id);
+              selectFor(t, gen.id);
             }
             setRun((r) => (r?.id === runId ? { ...r, done: r.done + 1 } : r));
           } catch (err) {
@@ -502,7 +506,7 @@ export const Studio: React.FC<StudioProps> = ({
   // --- Datos para la vista ---------------------------------------------------
 
   const visibleGens = generations.filter((g) => g.error || urlOf(g));
-  const sessionThumbs = visibleGens.filter((g) => !g.error);
+  const sessionThumbs = visibleGens.filter((g) => !g.error && g.tool === tool);
   const selected = sessionThumbs.find((g) => g.id === selectedId) ?? null;
   const selectedUrl = selected ? urlOf(selected) : undefined;
   const runHere = run && run.tool === tool ? run : null;
@@ -928,7 +932,7 @@ export const Studio: React.FC<StudioProps> = ({
                 <button
                   key={g.id}
                   onClick={() => {
-                    setSelectedId(g.id);
+                    selectFor(tool, g.id);
                     setCompare(false);
                   }}
                   aria-label="Show this result"
