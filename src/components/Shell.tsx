@@ -1,18 +1,21 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Frame, House, Images, Layers, LogOut, Package, Pencil, Sparkles } from 'lucide-react';
+import { Frame, House, Images, Layers, LogOut, Package, Pencil, Sparkles, Store } from 'lucide-react';
 import { Logo } from './Icons';
 import { TOOLS, TOOL_ORDER, type ToolId } from '../lib/tools';
 import { useSignOut } from '../lib/useSignOut';
 import { cn } from '../lib/utils';
 
-export type View = 'home' | 'studio' | 'gallery' | 'account';
+export type View = 'home' | 'studio' | 'gallery' | 'account' | 'etsy';
 
 const NAV: { id: View; label: string; icon: React.ElementType }[] = [
   { id: 'home', label: 'Home', icon: House },
   { id: 'studio', label: 'Studio', icon: Sparkles },
   { id: 'gallery', label: 'Gallery', icon: Images },
 ];
+
+// La tienda de Etsy es solo para el dueño: el servidor decide si se muestra
+const ETSY_NAV = { id: 'etsy' as View, label: 'Etsy', icon: Store };
 
 // Resorte corto para los fondos que se deslizan entre botones
 const SLIDE = { type: 'spring', stiffness: 520, damping: 42, mass: 0.8 } as const;
@@ -34,6 +37,8 @@ interface ShellProps {
   userName: string;
   avatar: string;
   galleryCount: number;
+  /** Sección de Etsy: solo para el dueño de la tienda */
+  showEtsy?: boolean;
   children: React.ReactNode;
 }
 
@@ -86,9 +91,11 @@ export const Shell: React.FC<ShellProps> = ({
   userName,
   avatar,
   galleryCount,
+  showEtsy,
   children,
 }) => {
   const signOut = useSignOut();
+  const tabs = showEtsy ? [...NAV, ETSY_NAV] : NAV;
   // La barra superior está siempre; dentro de las secciones (compu) se suma la barra lateral
   const inSection = view !== 'home';
 
@@ -106,7 +113,7 @@ export const Shell: React.FC<ShellProps> = ({
           </button>
 
           <nav aria-label="Main" className="hidden lg:flex items-center gap-2 p-1.5 rounded-full bg-white/[0.08]">
-            {NAV.map(({ id, label }) => (
+            {tabs.map(({ id, label }) => (
               <button
                 key={id}
                 onClick={() => onNavigate(id)}
@@ -171,6 +178,13 @@ export const Shell: React.FC<ShellProps> = ({
                   onClick={() => onNavigate('gallery')}
                 />
               </div>
+
+              {showEtsy && (
+                <div>
+                  <SideHeading>Shop</SideHeading>
+                  <SideItem icon={Store} label="Etsy" active={view === 'etsy'} onClick={() => onNavigate('etsy')} />
+                </div>
+              )}
             </nav>
 
             <div className="p-3">
@@ -185,9 +199,10 @@ export const Shell: React.FC<ShellProps> = ({
       {/* Barra de pestañas inferior (celular), estilo iOS */}
       <nav
         aria-label="Main"
-        className="lg:hidden fixed bottom-0 inset-x-0 z-40 grid grid-cols-3 bg-black/85 backdrop-blur-xl border-t border-white/[0.08] pb-[env(safe-area-inset-bottom)]"
+        style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
+        className="lg:hidden fixed bottom-0 inset-x-0 z-40 grid bg-black/85 backdrop-blur-xl border-t border-white/[0.08] pb-[env(safe-area-inset-bottom)]"
       >
-        {NAV.map(({ id, label, icon: Icon }) => (
+        {tabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => onNavigate(id)}

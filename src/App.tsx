@@ -7,6 +7,7 @@ import { Studio, type StudioRequest } from './components/studio/Studio';
 import { GalleryView } from './components/gallery/GalleryView';
 import { ImageViewer } from './components/gallery/ImageViewer';
 import { AccountView } from './components/AccountView';
+import { EtsyView } from './components/etsy/EtsyView';
 import { LoginScreen } from './components/LoginScreen';
 import { ApiKeyScreen } from './components/ApiKeyScreen';
 import { ToastProvider } from './components/ui/Toast';
@@ -14,6 +15,7 @@ import { DialogProvider } from './components/ui/Dialog';
 import { GalleryProvider, useGallery } from './lib/galleryContext';
 import { AuthProvider, avatarUrl, displayName, useAuth } from './lib/auth';
 import { clearLegacyStorage, getApiKey, setKeyScope } from './lib/settings';
+import { etsyStatus } from './lib/etsy';
 import type { SlotId, ToolId } from './lib/tools';
 
 const Workspace: React.FC<{ onKeyRemoved: () => void }> = ({ onKeyRemoved }) => {
@@ -23,6 +25,23 @@ const Workspace: React.FC<{ onKeyRemoved: () => void }> = ({ onKeyRemoved }) => 
   const [tool, setTool] = useState<ToolId>('create');
   const [request, setRequest] = useState<StudioRequest | null>(null);
   const [viewer, setViewer] = useState<{ id: string; ids: string[] } | null>(null);
+  // La sección de Etsy la habilita el servidor, solo para el dueño de la tienda
+  const [etsyAllowed, setEtsyAllowed] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    etsyStatus()
+      .then((s) => alive && setEtsyAllowed(s.allowed))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Al volver de Etsy, la URL trae ?view=etsy
+  useEffect(() => {
+    if (etsyAllowed && new URLSearchParams(window.location.search).get('view') === 'etsy') setView('etsy');
+  }, [etsyAllowed]);
 
   const navigate = useCallback((v: View) => {
     setView(v);
@@ -55,6 +74,7 @@ const Workspace: React.FC<{ onKeyRemoved: () => void }> = ({ onKeyRemoved }) => 
       userName={displayName(user)}
       avatar={avatarUrl(user)}
       galleryCount={images.length}
+      showEtsy={etsyAllowed}
     >
       {/* Inicio, estudio y galería quedan montados para no perder lo que estabas haciendo */}
       <div hidden={view !== 'home'}>
@@ -75,6 +95,7 @@ const Workspace: React.FC<{ onKeyRemoved: () => void }> = ({ onKeyRemoved }) => 
         <GalleryView onOpenImage={openImage} onGoToStudio={() => navigate('studio')} />
       </div>
       {view === 'account' && <AccountView onKeyRemoved={onKeyRemoved} />}
+      {view === 'etsy' && <EtsyView />}
 
       <ImageViewer
         imageId={viewer?.id ?? null}
