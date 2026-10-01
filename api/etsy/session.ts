@@ -154,9 +154,18 @@ const status = async (userId: string) => {
   // Comprobación en vivo: renovamos el token si hace falta y preguntamos por la tienda
   try {
     const token = await freshToken(userId, account);
-    const res = await etsyGet(account.shop_id ? `/shops/${account.shop_id}` : '/users/me', token);
-    if (res.status === 401 || res.status === 403) return json(200, { ...base, needsReconnect: true });
-    if (!res.ok) return json(200, { ...base, shopError: `Etsy answered ${res.status}.` });
+    const path = account.shop_id ? `/shops/${account.shop_id}` : '/users/me';
+    const res = await etsyGet(path, token);
+    if (!res.ok) {
+      // El detalle de Etsy sirve para saber si es la tienda suspendida, la app o el permiso
+      const detail = (await res.text()).slice(0, 220);
+      return json(200, {
+        ...base,
+        // Solo el 401 significa que hay que volver a dar permiso; un 403 suele ser la cuenta
+        needsReconnect: res.status === 401,
+        shopError: `Etsy answered ${res.status} on ${path}. ${detail}`,
+      });
+    }
     const shop = (await res.json()) as { shop_name?: string; is_vacation?: boolean; listing_active_count?: number };
     if (shop.shop_name && shop.shop_name !== account.shop_name) {
       await db(`etsy_accounts?user_id=eq.${userId}`, {
