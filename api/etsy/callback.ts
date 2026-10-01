@@ -25,15 +25,15 @@ const backToApp = (request: Request, params: Record<string, string>) => {
 /** Acceso a la base como servidor (las tablas de Etsy no se leen desde el navegador). */
 const db = (path: string, init: RequestInit = {}) => {
   const key = env('SUPABASE_SERVICE_ROLE_KEY');
-  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...init,
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      'Content-Type': 'application/json',
-      ...((init.headers as Record<string, string>) ?? {}),
-    },
-  });
+  const headers: Record<string, string> = {
+    apikey: key,
+    'Content-Type': 'application/json',
+    ...((init.headers as Record<string, string>) ?? {}),
+  };
+  // La clave vieja (service_role) es un JWT y va también como Bearer.
+  // Las nuevas (sb_secret_...) no lo son: van solo en apikey.
+  if (key.startsWith('ey')) headers.Authorization = `Bearer ${key}`;
+  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, { ...init, headers });
 };
 
 export async function GET(request: Request): Promise<Response> {

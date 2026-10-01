@@ -47,15 +47,15 @@ const userIdFrom = async (request: Request): Promise<string | null> => {
 /** Acceso a la base como servidor (solo así se leen estas tablas). */
 const db = (path: string, init: RequestInit = {}) => {
   const key = env('SUPABASE_SERVICE_ROLE_KEY');
-  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...init,
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      'Content-Type': 'application/json',
-      ...((init.headers as Record<string, string>) ?? {}),
-    },
-  });
+  const headers: Record<string, string> = {
+    apikey: key,
+    'Content-Type': 'application/json',
+    ...((init.headers as Record<string, string>) ?? {}),
+  };
+  // La clave vieja (service_role) es un JWT y va también como Bearer.
+  // Las nuevas (sb_secret_...) no lo son: van solo en apikey.
+  if (key.startsWith('ey')) headers.Authorization = `Bearer ${key}`;
+  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, { ...init, headers });
 };
 
 const base64url = (bytes: Uint8Array) =>
@@ -78,7 +78,8 @@ interface Account {
 
 const accountOf = async (userId: string): Promise<Account | null> => {
   const res = await db(`etsy_accounts?user_id=eq.${userId}&select=*`);
-  if (!res.ok) throw new Error('No pudimos leer la conexión con Etsy.');
+  // El detalle sirve para ver si la clave del servidor está bien cargada
+  if (!res.ok) throw new Error(`Supabase answered ${res.status}: ${(await res.text()).slice(0, 160)}`);
   const rows = (await res.json()) as Account[];
   return rows[0] ?? null;
 };
@@ -124,7 +125,7 @@ const connect = async (userId: string) => {
     method: 'POST',
     body: JSON.stringify({ state, user_id: userId, code_verifier: verifier }),
   });
-  if (!saved.ok) return json(500, { error: "Couldn't start the connection. Try again." });
+  if (!saved.ok) return json(500, { error: `Couldn't start the connection. Supabase answered ${saved.status}: ${(await saved.text()).slice(0, 160)}` });
 
   const url = new URL(ETSY_AUTHORIZE_URL);
   url.searchParams.set('response_type', 'code');
