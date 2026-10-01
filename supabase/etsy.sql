@@ -19,6 +19,7 @@ create table if not exists public.etsy_accounts (
 
 alter table public.etsy_accounts enable row level security;
 revoke all on public.etsy_accounts from anon, authenticated;
+grant select, insert, update, delete on public.etsy_accounts to service_role;
 
 -- Guarda el código de verificación mientras el usuario está en la pantalla de Etsy
 create table if not exists public.etsy_oauth_states (
@@ -30,3 +31,4 @@ create table if not exists public.etsy_oauth_states (
 
 alter table public.etsy_oauth_states enable row level security;
 revoke all on public.etsy_oauth_states from anon, authenticated;
+grant select, insert, update, delete on public.etsy_oauth_states to service_role;
