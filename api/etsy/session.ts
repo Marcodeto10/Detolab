@@ -112,9 +112,16 @@ const freshToken = async (userId: string, account: Account): Promise<string> => 
   return token.access_token;
 };
 
+/** Etsy pide la clave y el secreto juntos: keystring:shared_secret */
+const apiKeyHeader = () => {
+  const keystring = env('ETSY_KEYSTRING');
+  const secret = env('ETSY_SHARED_SECRET');
+  return secret ? `${keystring}:${secret}` : keystring;
+};
+
 const etsyGet = (path: string, accessToken: string) =>
   fetch(`${ETSY_API}${path}`, {
-    headers: { 'x-api-key': env('ETSY_KEYSTRING'), Authorization: `Bearer ${accessToken}` },
+    headers: { 'x-api-key': apiKeyHeader(), Authorization: `Bearer ${accessToken}` },
   });
 
 const connect = async (userId: string) => {
@@ -142,7 +149,7 @@ const status = async (userId: string) => {
   const account = await accountOf(userId);
   if (!account) return json(200, { allowed: true, connected: false });
 
-  const base = {
+  const base: Record<string, unknown> = {
     allowed: true,
     connected: true,
     shopId: account.shop_id,
@@ -151,22 +158,36 @@ const status = async (userId: string) => {
     scopes: account.scopes,
   };
 
-  // Comprobación en vivo: renovamos el token si hace falta y preguntamos por la tienda
+  const failed = async (res: Response, path: string) => {
+    const detail = (await res.text()).slice(0, 220);
+    // Solo el 401 significa que hay que volver a dar permiso; otros códigos suelen ser la cuenta
+    return json(200, { ...base, needsReconnect: res.status === 401, shopError: `Etsy answered ${res.status} on ${path}. ${detail}` });
+  };
+
   try {
     const token = await freshToken(userId, account);
-    const path = account.shop_id ? `/shops/${account.shop_id}` : '/users/me';
-    const res = await etsyGet(path, token);
-    if (!res.ok) {
-      // El detalle de Etsy sirve para saber si es la tienda suspendida, la app o el permiso
-      const detail = (await res.text()).slice(0, 220);
-      return json(200, {
-        ...base,
-        // Solo el 401 significa que hay que volver a dar permiso; un 403 suele ser la cuenta
-        needsReconnect: res.status === 401,
-        shopError: `Etsy answered ${res.status} on ${path}. ${detail}`,
+    let shopId = account.shop_id;
+
+    // Si todavía no sabemos cuál es la tienda, se la preguntamos a Etsy y la guardamos
+    if (!shopId) {
+      const meRes = await etsyGet('/users/me', token);
+      if (!meRes.ok) return failed(meRes, '/users/me');
+      const me = (await meRes.json()) as { user_id?: number; shop_id?: number };
+      shopId = me.shop_id ? String(me.shop_id) : null;
+      base.shopId = shopId;
+      base.etsyUserId = me.user_id ? String(me.user_id) : null;
+      await db(`etsy_accounts?user_id=eq.${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ etsy_user_id: base.etsyUserId, shop_id: shopId, updated_at: new Date().toISOString() }),
       });
     }
-    const shop = (await res.json()) as { shop_name?: string; is_vacation?: boolean; listing_active_count?: number };
+
+    if (!shopId) return json(200, { ...base, shopError: 'That Etsy account does not have a shop yet.' });
+
+    const res = await etsyGet(`/shops/${shopId}`, token);
+    if (!res.ok) return failed(res, `/shops/${shopId}`);
+
+    const shop = (await res.json()) as { shop_name?: string; listing_active_count?: number };
     if (shop.shop_name && shop.shop_name !== account.shop_name) {
       await db(`etsy_accounts?user_id=eq.${userId}`, {
         method: 'PATCH',

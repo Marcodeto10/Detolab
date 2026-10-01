@@ -14,6 +14,13 @@ const DEFAULT_REDIRECT_URI = 'https://detolab-five.vercel.app/api/etsy/callback'
 
 const env = (name: string) => process.env[name]?.trim() ?? '';
 
+/** Etsy pide la clave y el secreto juntos: keystring:shared_secret */
+const apiKeyHeader = () => {
+  const keystring = env('ETSY_KEYSTRING');
+  const secret = env('ETSY_SHARED_SECRET');
+  return secret ? `${keystring}:${secret}` : keystring;
+};
+
 /** Volver a la app con el resultado a la vista. */
 const backToApp = (request: Request, params: Record<string, string>) => {
   const url = new URL('/', new URL(request.url).origin);
@@ -77,14 +84,14 @@ export async function GET(request: Request): Promise<Response> {
 
     // Quién sos en Etsy y cuál es tu tienda
     const meRes = await fetch(`${ETSY_API}/users/me`, {
-      headers: { 'x-api-key': env('ETSY_KEYSTRING'), Authorization: `Bearer ${token.access_token}` },
+      headers: { 'x-api-key': apiKeyHeader(), Authorization: `Bearer ${token.access_token}` },
     });
     const me = meRes.ok ? ((await meRes.json()) as { user_id?: number; shop_id?: number }) : {};
 
     let shopName: string | null = null;
     if (me.shop_id) {
       const shopRes = await fetch(`${ETSY_API}/shops/${me.shop_id}`, {
-        headers: { 'x-api-key': env('ETSY_KEYSTRING'), Authorization: `Bearer ${token.access_token}` },
+        headers: { 'x-api-key': apiKeyHeader(), Authorization: `Bearer ${token.access_token}` },
       });
       if (shopRes.ok) shopName = ((await shopRes.json()) as { shop_name?: string }).shop_name ?? null;
     }
